@@ -90,6 +90,7 @@ GtkUIManager   *ev_window_get_ui_manager                 (EvWindow       *ev_win
 GtkActionGroup *ev_window_get_main_action_group          (EvWindow       *ev_window);
 GtkActionGroup *ev_window_get_zoom_selector_action_group (EvWindow       *ev_window);
 void            ev_window_show_recent_view               (EvWindow       *ev_window);
+GtkActionGroup *ev_window_get_minimal_toolbar_action_group (EvWindow     *ev_window);
 
 G_END_DECLS
 
