@@ -1,0 +1,23 @@
+Highlighting- Current Issues :
+
+1) Full of HACKS : Just meant for understanding various aspects of implementing text-markup annotations.
+2) Quite a lot of warnings.
+3) Somewhere changed color of annotations to black.!
+
+CRITICAL :
+
+Segmentaion faults whenever:
+
+1) no. of lines (rectangles) exceeds 1.
+2) special text like italics, super/sub script, bold, underline, rotated, different font(?) is encountered.
+
+
+Other feature related issues :
+
+1) Markup window not attached to highlighted rect by default. Becomes active when SAVED and Reloaded.
+2) Annotation list tree.
+3) Add toggle button doesn't toggle after button release.
+4) Empty highlights created.
+5) View not reloading properly.
+
+These are just some of many, this is a WIP.
