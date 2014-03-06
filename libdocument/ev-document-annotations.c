@@ -66,6 +66,15 @@ ev_document_annotations_add_annotation (EvDocumentAnnotations *document_annots,
 		iface->add_annotation (document_annots, annot, rect);
 }
 
+void
+ev_document_annotations_update_selected_text (EvDocumentAnnotations *document_annots, EvAnnotation          *annot, EvRectangle           *rect)
+{
+	EvDocumentAnnotationsInterface *iface = EV_DOCUMENT_ANNOTATIONS_GET_IFACE (document_annots);
+
+	if (iface->update_selected_text)
+		iface->update_selected_text (document_annots, annot, rect);
+}
+
 gboolean
 ev_document_annotations_can_add_annotation (EvDocumentAnnotations *document_annots)
 {

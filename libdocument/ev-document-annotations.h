@@ -79,6 +79,9 @@ struct _EvDocumentAnnotationsInterface
 	void           (* save_annotation)      (EvDocumentAnnotations *document_annots,
 						 EvAnnotation          *annot,
 						 EvAnnotationsSaveMask  mask);
+	void		   (* update_selected_text) (EvDocumentAnnotations *document_annots,
+						 EvAnnotation          *annot,
+						 EvRectangle           *rect);
 };
 
 GType          ev_document_annotations_get_type             (void) G_GNUC_CONST;
@@ -87,6 +90,9 @@ EvMappingList *ev_document_annotations_get_annotations      (EvDocumentAnnotatio
 gboolean       ev_document_annotations_document_is_modified (EvDocumentAnnotations *document_annots);
 void           ev_document_annotations_add_annotation       (EvDocumentAnnotations *document_annots,
 							     EvAnnotation          *annot,
+							     EvRectangle           *rect);
+void	      ev_document_annotations_update_selected_text (EvDocumentAnnotations *document_annots,
+						 		 EvAnnotation          *annot,
 							     EvRectangle           *rect);
 void           ev_document_annotations_save_annotation      (EvDocumentAnnotations *document_annots,
 							     EvAnnotation          *annot,
