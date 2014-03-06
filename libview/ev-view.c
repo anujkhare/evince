@@ -1280,6 +1280,7 @@ get_doc_page_size (EvView  *view,
 	}
 }
 
+//kcm: These really needs to be documented..! 
 void
 _ev_view_transform_view_point_to_doc_point (EvView       *view,
 					    GdkPoint     *view_point,
@@ -2011,7 +2012,7 @@ ev_view_handle_cursor_over_xy (EvView *view, gint x, gint y)
 		return;
 
 	if (view->adding_annot) {
-		if (view->cursor != EV_VIEW_CURSOR_ADD)
+		if (view->cursor != EV_VIEW_CURSOR_ADD && view->adding_annot_type==EV_ANNOTATION_TYPE_TEXT)
 			ev_view_set_cursor (view, EV_VIEW_CURSOR_ADD);
 		return;
 	}
@@ -3033,6 +3034,8 @@ ev_view_annotation_show_popup_window (EvView    *view,
 	if (!window)
 		return;
 
+	//kcm: from button press on this type of annotation..
+
 	child = ev_view_get_window_child (view, window);
 	if (!child->visible) {
 		child->visible = TRUE;
@@ -3077,10 +3080,12 @@ ev_view_handle_annotation (EvView       *view,
 
 static void
 ev_view_create_annotation (EvView          *view,
-			   EvAnnotationType annot_type,
-			   gint             x,
-			   gint             y)
+                          EvAnnotationType annot_type,
+                          gint             x,
+                          gint             y)
+
 {
+	//printf ("\nCreate Annotation\n");
 	EvAnnotation   *annot;
 	GdkPoint        point;
 	GdkRectangle    page_area;
@@ -3093,17 +3098,26 @@ ev_view_create_annotation (EvView          *view,
 
 	point.x = x;
 	point.y = y;
+	printf ("CREATE - %d %d\n",x,y);
 	ev_view_get_page_extents (view, view->current_page, &page_area, &border);
 	_ev_view_transform_view_point_to_doc_point (view, &point, &page_area, &border,
 						    &doc_rect.x1, &doc_rect.y1);
-	doc_rect.x2 = doc_rect.x1 + 24;
-	doc_rect.y2 = doc_rect.y1 + 24;
+	doc_rect.x2 = doc_rect.x1;
+	doc_rect.y2 = doc_rect.y1;
+
+	printf ("CREATE Doc Rect - %f %f , %f %f\n",doc_rect.x1,doc_rect.y1,doc_rect.x2,doc_rect.y2);
 
 	ev_document_doc_mutex_lock ();
 	page = ev_document_get_page (view->document, view->current_page);
 	switch (annot_type) {
 	case EV_ANNOTATION_TYPE_TEXT:
+		doc_rect.x2 = doc_rect.x1 + 24;
+		doc_rect.y2 = doc_rect.y1 + 24;
 		annot = ev_annotation_text_new (page);
+		break;
+	case EV_ANNOTATION_TYPE_HIGHLIGHT:
+		annot = ev_annotation_text_markup_new_highlight (page);
+		printf ("\nCreated a new highlight.!\n");
 		break;
 	case EV_ANNOTATION_TYPE_ATTACHMENT:
 		/* TODO */
@@ -3114,12 +3128,15 @@ ev_view_create_annotation (EvView          *view,
 		g_assert_not_reached ();
 	}
 	g_object_unref (page);
-
-	ev_annotation_set_color (annot, &color);
-
+	GdkRGBA rgba1;
+	rgba1.red = 1; rgba1.blue = rgba1.green = 0;
+	//kcm: just to test if this way of setting color works properly.. it does..
+//	ev_annotation_set_color (annot, &color);
+	ev_annotation_set_rgba (annot,&rgba1);
 	if (EV_IS_ANNOTATION_MARKUP (annot)) {
+		//printf ("\nCREATE ANNOT - IS MARKUP - SET PROPS!\n");
 		popup_rect.x1 = doc_rect.x2;
-		popup_rect.x2 = popup_rect.x1 + 200;
+		popup_rect.x2 = popup_rect.x1 + 200;		//why?
 		popup_rect.y1 = doc_rect.y2;
 		popup_rect.y2 = popup_rect.y1 + 150;
 		g_object_set (annot,
@@ -3130,15 +3147,18 @@ ev_view_create_annotation (EvView          *view,
 			      "opacity", 1.0,
 			      NULL);
 	}
+	//kcm: this call adds the annotation to the pdf document..
 	ev_document_annotations_add_annotation (EV_DOCUMENT_ANNOTATIONS (view->document),
 						annot, &doc_rect);
 	ev_document_doc_mutex_unlock ();
 
 	/* If the page didn't have annots, mark the cache as dirty */
+	//printf ("\nCREATE ANNOT - IS MARKUP - cache.!!\n");
 	if (!ev_page_cache_get_annot_mapping (view->page_cache, view->current_page))
 		ev_page_cache_mark_dirty (view->page_cache, view->current_page);
 
 	if (EV_IS_ANNOTATION_MARKUP (annot)) {
+		//printf ("\nCREATE ANNOT - IS MARKUP - SHOW WINODW.!!\n");
 		GtkWindow *parent;
 		GtkWidget *window;
 
@@ -3146,7 +3166,8 @@ ev_view_create_annotation (EvView          *view,
 		window = ev_view_create_annotation_window (view, annot, parent);
 
 		/* Show the annot window the first time */
-		ev_view_annotation_show_popup_window (view, window);
+		if (ev_annotation_markup_get_popup_is_open(annot))
+			ev_view_annotation_show_popup_window (view, window);
 	}
 
 	_ev_view_transform_doc_rect_to_view_rect (view, view->current_page, &doc_rect, &view_rect);
@@ -3156,6 +3177,7 @@ ev_view_create_annotation (EvView          *view,
 	ev_view_reload_page (view, view->current_page, region);
 	cairo_region_destroy (region);
 
+	view->active_annot = annot;	//kcm:store the current annot
 	g_signal_emit (view, signals[SIGNAL_ANNOT_ADDED], 0, annot);
 }
 
@@ -3181,8 +3203,19 @@ ev_view_begin_add_annotation (EvView          *view,
 	if (view->adding_annot)
 		return;
 
+	//kcm: sets flags.. will wait for mouse release now..
 	view->adding_annot = TRUE;
 	view->adding_annot_type = annot_type;
+	switch (annot_type) {
+		case EV_ANNOTATION_TYPE_TEXT:
+			break;
+		case EV_ANNOTATION_TYPE_HIGHLIGHT:
+		case EV_ANNOTATION_TYPE_UNDERLINE:
+		case EV_ANNOTATION_TYPE_STRIKE_OUT:
+		case EV_ANNOTATION_TYPE_SQUIGGLY:
+		default:
+			break;
+	}
 	ev_view_set_cursor (view, EV_VIEW_CURSOR_ADD);
 }
 
@@ -4639,9 +4672,19 @@ ev_view_button_press_event (GtkWidget      *widget,
 	view->pressed_button = event->button;
 	view->selection_info.in_drag = FALSE;
 
-	if (view->adding_annot)
+	//kcm: move annot create to button_press rather than release to allow text markup annots...!
+	if (view->adding_annot) {
+		view->start.x = event->x + view->scroll_x;  //kcm: very important to mind these.. ... ....
+		view->start.y = event->y + view->scroll_y;
+		view->stop = view->start;
+		printf ("PRESS - %f %f , %f %f\n",view->start.x,view->start.y,view->stop.x,view->stop.y);
+		ev_view_create_annotation (view,
+					   view->adding_annot_type,
+					   view->stop.x,
+					   view->stop.y);
+		//kcm: does removing para create prob if cursor is moved very quickly.. for now, re-putting them..
 		return FALSE;
-
+	}
 	if (view->scroll_info.autoscrolling)
 		return TRUE;
 
@@ -4940,7 +4983,7 @@ ev_view_motion_notify_event (GtkWidget      *widget,
 
 	window = gtk_widget_get_window (widget);
 
-        if (event->is_hint || event->window != window) {
+    if (event->is_hint || event->window != window) {
 	    ev_document_misc_get_pointer_position (widget, &x, &y);
         } else {
 	    x = event->x;
@@ -4951,7 +4994,7 @@ ev_view_motion_notify_event (GtkWidget      *widget,
 		view->scroll_info.last_y = y;
 		return TRUE;
 	}
-
+	if (!view->adding_annot){ //kcm: find a way to disable selection when annot
 	if (view->selection_info.in_drag) {
 		if (gtk_drag_check_threshold (widget,
 					      view->selection_info.start.x,
@@ -4992,9 +5035,48 @@ ev_view_motion_notify_event (GtkWidget      *widget,
 			return TRUE;
 		}
 	}
+	}
 	
 	switch (view->pressed_button) {
 	case 1:
+		if (view->adding_annot) {
+			view->stop.x = event->x + view->scroll_x; //mind it.
+			view->stop.y = event->y + view->scroll_y;
+
+			if (view->adding_annot_type == EV_ANNOTATION_TYPE_HIGHLIGHT) {
+				GdkRectangle    page_area;
+				GdkRectangle	view_rect;
+				GtkBorder       border;
+				GdkPoint		point;		//ignore warnings and small details.. => waste 1hour..
+				EvRectangle	  	doc_rect;
+				cairo_region_t *region;
+
+				ev_view_get_page_extents (view, view->current_page, &page_area, &border);
+
+				point.x = view->start.x;
+				point.y = view->start.y;	//rect_to_rect won't work as it uses width/height of rect..
+				_ev_view_transform_view_point_to_doc_point (view, &point, &page_area, &border,
+									    &doc_rect.x1, &doc_rect.y1);
+				point.x = view->stop.x;
+				point.y = view->stop.y;
+				_ev_view_transform_view_point_to_doc_point (view, &point, &page_area, &border,
+									    &doc_rect.x2, &doc_rect.y2);
+				//printf ("\nDOC  RECT-> (%f, %f)(%f, %f)",doc_rect.x1,doc_rect.y1,doc_rect.x2,doc_rect.y2);
+				//_ev_view_transform_view_rect_to_doc_rect (view, &rect, &page_area, &border, 
+				//						    &doc_rect);
+				ev_document_annotations_update_selected_text(EV_DOCUMENT_ANNOTATIONS (view->document), view->active_annot, &doc_rect);
+
+				doc_rect.y1=0;
+				doc_rect.y2=700;
+				_ev_view_transform_doc_rect_to_view_rect (view, view->current_page, &doc_rect, &view_rect);
+				view_rect.x -= view->scroll_x;
+				view_rect.y -= view->scroll_y;
+				region = cairo_region_create_rectangle (&view_rect);		//TODO reload only the highlighted part.. NOTE- view->rect doesn't include the text it covers..
+				ev_view_reload_page (view, view->current_page, region);
+				cairo_region_destroy (region);
+			}
+			return FALSE;
+		}
 		/* For the Evince 0.4.x release, we limit selection to un-rotated
 		 * documents only.
 		 */
@@ -5088,6 +5170,7 @@ static gboolean
 ev_view_button_release_event (GtkWidget      *widget,
 			      GdkEventButton *event)
 {
+	//printf ("Button release event.\n");
 	EvView *view = EV_VIEW (widget);
 	EvLink *link = NULL;
 
@@ -5116,17 +5199,17 @@ ev_view_button_release_event (GtkWidget      *widget,
 	}
 
 	view->drag_info.in_drag = FALSE;
-
 	if (view->adding_annot && view->pressed_button == 1) {
 		view->adding_annot = FALSE;
 		ev_view_handle_cursor_over_xy (view, event->x, event->y);
 		view->pressed_button = -1;
-
-		ev_view_create_annotation (view,
-					   view->adding_annot_type,
-					   event->x + view->scroll_x,
-					   event->y + view->scroll_y);
-
+		view->start.x=view->start.y=-1;
+		view->stop = view->start;
+		ev_document_doc_mutex_lock ();
+		ev_document_annotations_save_annotation (EV_DOCUMENT_ANNOTATIONS (view->document),
+							 view->active_annot, EV_ANNOTATIONS_SAVE_CONTENTS);
+		ev_document_doc_mutex_unlock ();
+		view->active_annot = NULL;	//not memory leak..
 		return FALSE;
 	}
 

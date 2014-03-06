@@ -202,6 +202,8 @@ struct _EvView {
 	EvViewWindowChild *window_child_focus;
 	gboolean           adding_annot;
 	EvAnnotationType   adding_annot_type;
+	EvAnnotation	  *active_annot;
+	EvPoint			  start,stop;	
 
 	/* Focus */
 	EvMapping *focused_element;
