@@ -1047,3 +1047,32 @@ ev_rect_cmp (EvRectangle *a,
 		  (ABS (a->x2 - b->x2) < EPSILON) &&
 		  (ABS (a->y2 - b->y2) < EPSILON));
 }
+
+/*EvQuadrilateral type */
+G_DEFINE_BOXED_TYPE (EvQuadrilateral, ev_quadrilateral,
+					 ev_quadrilateral_copy, ev_quadrilateral_free)
+
+EvQuadrilateral *
+ev_quadrilateral_new (void)
+{
+	return g_new0 (EvQuadrilateral, 1);
+}
+
+EvQuadrilateral *
+ev_quadrilateral_copy (EvQuadrilateral *quadrilateral)
+{
+	EvQuadrilateral *new_quadrilateral;
+
+	g_return_val_if_fail (quadrilateral != NULL, NULL);
+
+	new_quadrilateral = g_new (EvQuadrilateral, 1);
+	*new_quadrilateral = *quadrilateral;
+
+	return new_quadrilateral;
+}
+
+void
+ev_quadrilateral_free (EvQuadrilateral *quadrilateral)
+{
+	g_free (quadrilateral);
+}

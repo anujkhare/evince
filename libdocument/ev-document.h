@@ -66,6 +66,7 @@ typedef enum
 
 typedef struct _EvPoint EvPoint;
 typedef struct _EvRectangle EvRectangle;
+typedef struct _EvQuadrilateral EvQuadrilateral;
 typedef struct _EvMapping EvMapping;
 typedef struct _EvSourceLink EvSourceLink;
 typedef struct _EvDocumentBackendInfo EvDocumentBackendInfo;
@@ -220,6 +221,21 @@ GType        ev_rectangle_get_type (void) G_GNUC_CONST;
 EvRectangle *ev_rectangle_new      (void);
 EvRectangle *ev_rectangle_copy     (EvRectangle *ev_rect);
 void         ev_rectangle_free     (EvRectangle *ev_rect);
+
+/* EvQuadrilateral */
+#define EV_TYPE_QUADRILATERAL (ev_quadrilateral_get_type())
+struct _EvQuadrilateral
+{
+	EvPoint p1;
+	EvPoint p2;
+	EvPoint p3;
+	EvPoint p4;
+};
+GType		ev_quadrilateral_get_type (void) G_GNUC_CONST;
+EvQuadrilateral *ev_quadrilateral_new (void);
+EvQuadrilateral *ev_quadrilateral_copy (EvQuadrilateral *quad);
+void			ev_quadrilateral_free (EvQuadrilateral *quad);
+/* - */
 
 struct _EvMapping {
 	EvRectangle area;
