@@ -2779,6 +2779,7 @@ static EvAnnotation *
 ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			     EvPage       *page)
 {
+//	printf ("\nPOPPLER - ev_annot_from_poppler_annot\n");
 	EvAnnotation *ev_annot = NULL;
 	const gchar  *unimplemented_annot = NULL;
 	gboolean reported_annot = FALSE;
@@ -2798,6 +2799,31 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			ev_annotation_text_set_icon (ev_annot_text, get_annot_text_icon (poppler_text));
 		}
 			break;
+			case POPPLER_ANNOT_HIGHLIGHT: {
+			printf ("\n\nHIGHLIGHT ANNOTATION SEEN.!\n");
+			PopplerAnnotTextMarkup *poppler_text_markup;
+			GArray				   *quads_array = NULL;
+			PopplerQuadrilateral	quadrilateral;
+
+			poppler_text_markup = POPPLER_ANNOT_TEXT_MARKUP (poppler_annot);
+
+			ev_annot = ev_annotation_text_markup_new_highlight (page);
+
+			quads_array = poppler_annot_text_markup_get_quadrilaterals (POPPLER_ANNOT_TEXT_MARKUP (poppler_annot));
+
+			for (int i = 0; i < quads_array->len; i++) {
+				quadrilateral = g_array_index (quads_array, PopplerQuadrilateral, i);
+				printf ("Name : %s, Quad %d - (%f %f), (%f %f), (%f %f), (%f %f)\n",
+						poppler_annot_get_name (poppler_annot),i,
+						quadrilateral.p1.x,quadrilateral.p1.y,
+						quadrilateral.p2.x,quadrilateral.p3.y,
+						quadrilateral.p3.x,quadrilateral.p3.y,
+						quadrilateral.p4.x,quadrilateral.p4.y);
+			}
+
+			g_array_free (quads_array, TRUE);
+			break;
+		}
 	        case POPPLER_ANNOT_FILE_ATTACHMENT: {
 			PopplerAnnotFileAttachment *poppler_annot_attachment;
 			PopplerAttachment          *poppler_attachment;
@@ -2835,7 +2861,6 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		case POPPLER_ANNOT_3D:
 		case POPPLER_ANNOT_CARET:
 		case POPPLER_ANNOT_FREE_TEXT:
-		case POPPLER_ANNOT_HIGHLIGHT:
 		case POPPLER_ANNOT_LINE:
 		case POPPLER_ANNOT_SCREEN:
 		case POPPLER_ANNOT_SOUND:
@@ -2962,6 +2987,7 @@ static EvMappingList *
 pdf_document_annotations_get_annotations (EvDocumentAnnotations *document_annotations,
 					  EvPage                *page)
 {
+	//printf ("\nPOPPLER - document_get_annotation\n");
 	GList *retval = NULL;
 	PdfDocument *pdf_document;
 	PopplerPage *poppler_page;
@@ -3046,11 +3072,42 @@ pdf_document_annotations_document_is_modified (EvDocumentAnnotations *document_a
 	return PDF_DOCUMENT (document_annotations)->annots_modified;
 }
 
+static inline void
+pdf_document_annotations_set_ev_quad_from_rectangle (EvQuadrilateral *quad,
+													 PopplerRectangle	 *rect)
+{
+	quad->p1.x = rect->x1;
+	quad->p1.y = rect->y1;
+	quad->p2.x = rect->x2;
+	quad->p2.y = rect->y1;
+	quad->p3.x = rect->x1;
+	quad->p3.y = rect->y2;
+	quad->p4.x = rect->x2;
+	quad->p4.y = rect->y2;
+}
+
+static GArray *
+pdf_document_annotations_create_quads_array_for_rectangle (PopplerRectangle *rect)
+{
+	GArray	*quads_array;
+	EvQuadrilateral *quad;
+
+	quads_array = g_array_sized_new (FALSE, FALSE, sizeof (EvQuadrilateral),1);
+
+	g_array_set_size (quads_array, 1);
+
+	quad = &g_array_index (quads_array, EvQuadrilateral, 0);
+	pdf_document_annotations_set_ev_quad_from_rectangle (quad,rect);
+
+	return quads_array;
+}
+
 static void
 pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotations,
 					 EvAnnotation          *annot,
 					 EvRectangle           *rect)
 {
+	printf ("\n\n PDF ADD ANNOT - %d\n",ev_annotation_get_annotation_type(annot));
 	PopplerAnnot    *poppler_annot;
 	PdfDocument     *pdf_document;
 	EvPage          *page;
@@ -3063,23 +3120,48 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 	PopplerColor     poppler_color;
 	GdkColor         color;
 	gchar           *name;
+	EvAnnotationType type;
 
 	pdf_document = PDF_DOCUMENT (document_annotations);
 	page = ev_annotation_get_page (annot);
 	poppler_page = POPPLER_PAGE (page->backend_page);
 
+
+	printf ("ADD ANNOT %f %f %f %f!\n",rect->x1,rect->y1,rect->x2,rect->y2);
 	poppler_page_get_size (poppler_page, NULL, &height);
 	poppler_rect.x1 = rect->x1;
 	poppler_rect.x2 = rect->x2;
-	poppler_rect.y1 = height - rect->y2;
-	poppler_rect.y2 = height - rect->y1;
-	poppler_annot = poppler_annot_text_new (pdf_document->document, &poppler_rect);
+	poppler_rect.y1 = height - rect->y1;
+	poppler_rect.y2 = height - rect->y2;
 
-	ev_annotation_get_color (annot, &color);
-	poppler_color.red = color.red;
-	poppler_color.green = color.green;
-	poppler_color.blue = color.blue;
-	poppler_annot_set_color (poppler_annot, &poppler_color);
+	printf ("POPPLER RECT : %f %f %f %f!\n",poppler_rect.x1,poppler_rect.y1,poppler_rect.x2,poppler_rect.y2); //oh.. that's why i wasted 4 hours.. 
+
+	type = ev_annotation_get_annotation_type (annot);
+	printf ("TYPE - %d\n",ev_annotation_get_annotation_type(annot));
+	switch (type) {
+		case EV_ANNOTATION_TYPE_TEXT :
+	//	if (EV_IS_ANNOTATION_TEXT (annot))
+		{
+			poppler_annot = poppler_annot_text_new (pdf_document->document, &poppler_rect);
+			EvAnnotationText    *text = EV_ANNOTATION_TEXT (annot);
+			EvAnnotationTextIcon icon;
+
+			icon = ev_annotation_text_get_icon (text);
+			poppler_annot_text_set_icon (POPPLER_ANNOT_TEXT (poppler_annot),
+						     get_poppler_annot_text_icon (icon));
+		}
+		break;
+		case EV_ANNOTATION_TYPE_HIGHLIGHT: {
+			GArray	*quads_array;
+			quads_array = pdf_document_annotations_create_quads_array_for_rectangle (&poppler_rect);
+			poppler_annot = poppler_annot_text_markup_new_highlight (pdf_document->document, &poppler_rect , quads_array); 
+//			printf ("Point 1 : %d,%d\n",quads_array[0].p1.x,quads_array[0].p1.y);
+			g_array_free (quads_array,TRUE);
+		}
+		break;
+		default:
+		;
+	}
 
 	if (EV_IS_ANNOTATION_MARKUP (annot)) {
 		EvAnnotationMarkup *markup = EV_ANNOTATION_MARKUP (annot);
@@ -3103,14 +3185,12 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 			poppler_annot_markup_set_label (POPPLER_ANNOT_MARKUP (poppler_annot), label);
 	}
 
-	if (EV_IS_ANNOTATION_TEXT (annot)) {
-		EvAnnotationText    *text = EV_ANNOTATION_TEXT (annot);
-		EvAnnotationTextIcon icon;
-
-		icon = ev_annotation_text_get_icon (text);
-		poppler_annot_text_set_icon (POPPLER_ANNOT_TEXT (poppler_annot),
-					     get_poppler_annot_text_icon (icon));
-	}
+	ev_annotation_get_color (annot, &color);
+	poppler_color.red = color.red;
+	poppler_color.green = color.green;
+	poppler_color.blue = color.blue;
+	poppler_annot_set_color (poppler_annot, &poppler_color);
+	printf ("\nPOPPLER - document_add_annotation\n");
 	poppler_page_add_annot (poppler_page, poppler_annot);
 
 	annot_mapping = g_new (EvMapping, 1);
@@ -3152,11 +3232,125 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 	pdf_document->annots_modified = TRUE;
 }
 
+/*this function will update selected text on the basis of mouse movement. */
+static void
+pdf_document_annotations_update_selected_text (EvDocumentAnnotations *document_annotations,
+					 EvAnnotation          *annot,
+					 EvRectangle		   *rect)
+{
+	PopplerAnnot    *poppler_annot;
+	PdfDocument     *pdf_document;
+	EvPage          *page;
+	PopplerPage     *poppler_page;
+	PopplerRectangle poppler_rect, *rects = NULL, *r = NULL;
+	gdouble          width,height;
+	GList			 *l_rects = NULL, *list;
+	GArray			 *quads_array = NULL;
+	guint			 i,n_rects;
+	gint 			 lines = 0;
+
+	pdf_document = PDF_DOCUMENT (document_annotations);
+	page = ev_annotation_get_page (annot);
+	poppler_page = POPPLER_PAGE (page->backend_page);
+	poppler_annot = POPPLER_ANNOT (g_object_get_data (G_OBJECT (annot), "poppler-annot"));
+	poppler_page_get_size (poppler_page, &width, &height);
+
+	poppler_rect.x1 = rect->x1;
+	poppler_rect.x2 = rect->x2;
+	poppler_rect.y1 = rect->y1;
+	poppler_rect.y2 = rect->y2;
+//	printf ("PopplerRect Coords(view): %f %f %f %f\n",poppler_rect.x1,poppler_rect.y1,poppler_rect.x2,poppler_rect.y2);
+	/* Create a new rect !
+		in view, y is 0 at top, in poppler page y is 0 at bottom..! WTH!
+		also doc get layout for area mein you have to give as in view..
+		Also note that rects will have as in view and quads should have as in page..*/
+
+	//return if no word lists in the area..
+	if (! poppler_page_get_text_layout_for_area (POPPLER_PAGE (page->backend_page), &poppler_rect, &rects, &n_rects))
+		return; 
+
+	poppler_rect.y1 = height - rect->y1;
+	poppler_rect.y2 = height - rect->y2;
+
+	poppler_annot_set_rectangle (poppler_annot, &poppler_rect);
+//	printf ("PopplerRect Coords: %f %f %f %f\n",poppler_rect.x1,poppler_rect.y1,poppler_rect.x2,poppler_rect.y2);
+	r = g_slice_new (PopplerRectangle);
+	r->x1 = G_MAXDOUBLE; r->y1 = G_MAXDOUBLE;
+	r->x2 = G_MINDOUBLE; r->y2 = G_MINDOUBLE;
+
+	for (i = 0; i < n_rects; ++i) {
+		if (ABS(r->y2 -rects[i].y2) > 0.0001) {
+			if (i>0)
+				l_rects = g_list_append (l_rects, r);
+			r->x1 = rects[i].x1;
+			r->y1 = rects[i].y1;
+			r->x2 = rects[i].x2;
+			r->y2 = rects[i].y2;
+			lines++;
+		} else {
+			r->x1 = MIN (r->x1, rects[i].x1);
+			r->y1 = MIN (r->y1, rects[i].y1);
+			r->x2 = MAX (r->x2, rects[i].x2);
+			r->y2 = MAX (r->y2, rects[i].y2);
+		}
+	}
+
+	l_rects = g_list_append (l_rects, r);
+	l_rects = g_list_reverse (l_rects);
+	quads_array = g_array_sized_new (TRUE, TRUE,
+									 sizeof (PopplerQuadrilateral),
+									 lines);
+	g_array_set_size (quads_array, lines);
+
+    for (list = l_rects, i = 0; list; list = list->next, i++) {
+        PopplerQuadrilateral *quad;
+
+        quad = &g_array_index (quads_array, PopplerQuadrilateral, i);
+        r = (PopplerRectangle *)list->data;
+        quad->p1.x = r->x1;
+        quad->p1.y = height - r->y1;
+        quad->p2.x = r->x2;
+        quad->p2.y = height - r->y1;
+        quad->p3.x = r->x1;
+        quad->p3.y = height - r->y2;
+        quad->p4.x = r->x2;
+        quad->p4.y = height - r->y2;
+        g_slice_free (PopplerRectangle, r); 	//segfaults irritate..
+		//printf ("Merged Rects : %d - %f %f, %f %f\n",lines,r->x1,r->y1,r->x2,r->y2);
+		//printf ("Quads :Line %d : %f %f, %f %f, %f %f, %f %f\n",i,quad->p1.x,quad->p1.y,quad->p2.x,quad->p2.y,quad->p3.x,quad->p3.y,quad->p4.x,quad->p4.y);
+    }
+
+    poppler_annot_text_markup_set_quadrilaterals (POPPLER_ANNOT_TEXT_MARKUP (poppler_annot), quads_array);
+
+//	if (EV_IS_ANNOTATION_MARKUP (annot)) {
+		EvAnnotationMarkup *markup = EV_ANNOTATION_MARKUP (annot);
+
+		if (ev_annotation_markup_has_popup (markup)) {
+			printf ("\nRESIZE MARKUP RECT.. \n");
+			poppler_annot_markup_set_popup (POPPLER_ANNOT_MARKUP (poppler_annot), &poppler_rect);
+			poppler_rect.y1 = height - poppler_rect.y1;
+			poppler_rect.y2 = height - poppler_rect.y2;						//reverse and set into ev-annot
+				g_object_set (markup,
+					      "rectangle", &poppler_rect,
+					      "popup_is_open", FALSE,
+					      "has_popup", TRUE,
+					      NULL);
+		}
+//	}
+
+    g_array_free (quads_array, TRUE);
+    g_list_free (l_rects);
+    g_free (rects);
+
+	pdf_document->annots_modified = TRUE;
+}
+
 static void
 pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annotations,
 					  EvAnnotation          *annot,
 					  EvAnnotationsSaveMask  mask)
 {
+	printf ("\nPOPPLER - save_annotation\n");
 	PopplerAnnot *poppler_annot;
 
 	poppler_annot = POPPLER_ANNOT (g_object_get_data (G_OBJECT (annot), "poppler-annot"));
@@ -3215,6 +3409,7 @@ pdf_document_document_annotations_iface_init (EvDocumentAnnotationsInterface *if
 	iface->get_annotations = pdf_document_annotations_get_annotations;
 	iface->document_is_modified = pdf_document_annotations_document_is_modified;
 	iface->add_annotation = pdf_document_annotations_add_annotation;
+	iface->update_selected_text = pdf_document_annotations_update_selected_text;
 	iface->save_annotation = pdf_document_annotations_save_annotation;
 }
 
