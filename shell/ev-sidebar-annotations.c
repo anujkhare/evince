@@ -55,6 +55,7 @@ struct _EvSidebarAnnotationsPrivate {
 	GtkWidget   *tree_view;
 	GtkWidget   *palette;
 	GtkToolItem *annot_text_item;
+	GtkToolItem *annot_highlight_item;
 
 	EvJob       *job;
 	guint        selection_changed_id;
@@ -168,8 +169,10 @@ static void
 ev_sidebar_annotations_text_annot_button_toggled (GtkToggleToolButton  *toolbutton,
 						  EvSidebarAnnotations *sidebar_annots)
 {
+	//kcm: Button toggle for the text annotations. emits begin annot add with apt annot type.. ev-window
+	printf ("\nText annot button toggled!");
 	EvAnnotationType annot_type;
-
+	
 	if (!gtk_toggle_tool_button_get_active (toolbutton)) {
 		g_signal_emit (sidebar_annots, signals[ANNOT_ADD_CANCELLED], 0, NULL);
 		return;
@@ -177,6 +180,8 @@ ev_sidebar_annotations_text_annot_button_toggled (GtkToggleToolButton  *toolbutt
 
 	if (GTK_TOOL_ITEM (toolbutton) == sidebar_annots->priv->annot_text_item)
 		annot_type = EV_ANNOTATION_TYPE_TEXT;
+	else if (GTK_TOOL_ITEM (toolbutton) == sidebar_annots->priv->annot_highlight_item)
+		annot_type = EV_ANNOTATION_TYPE_HIGHLIGHT;
 	else
 		annot_type = EV_ANNOTATION_TYPE_UNKNOWN;
 
@@ -186,6 +191,8 @@ ev_sidebar_annotations_text_annot_button_toggled (GtkToggleToolButton  *toolbutt
 static void
 ev_sidebar_annotations_add_annots_palette (EvSidebarAnnotations *ev_annots)
 {
+	//kcm : this is the 'edit' looking button click for the annotations..
+	printf ("Add palette initialisation.\n");
 	GtkWidget   *swindow;
 	GtkWidget   *group;
 	GtkToolItem *item;
@@ -200,6 +207,7 @@ ev_sidebar_annotations_add_annots_palette (EvSidebarAnnotations *ev_annots)
 	gtk_container_add (GTK_CONTAINER (ev_annots->priv->palette), group);
 
 	/* FIXME: use a better icon than EDIT */
+	//kcm: the item for text annotations..
 	item = gtk_toggle_tool_button_new ();
 	gtk_tool_button_set_icon_name (GTK_TOOL_BUTTON (item), GTK_STOCK_EDIT);
 	gtk_tool_button_set_label (GTK_TOOL_BUTTON (item), _("Text"));
@@ -211,6 +219,19 @@ ev_sidebar_annotations_add_annots_palette (EvSidebarAnnotations *ev_annots)
 	gtk_tool_item_group_insert (GTK_TOOL_ITEM_GROUP (group), item, -1);
 	gtk_widget_show (GTK_WIDGET (item));
 
+	//kcm: the item for highlight annotations..
+	item = gtk_toggle_tool_button_new ();
+	gtk_tool_button_set_icon_name (GTK_TOOL_BUTTON (item), GTK_STOCK_UNDERLINE);
+	gtk_tool_button_set_label (GTK_TOOL_BUTTON (item), _("Highlight"));
+	gtk_widget_set_tooltip_text (GTK_WIDGET (item), _("Add highlight annotation"));
+	ev_annots->priv->annot_highlight_item = item;
+	g_signal_connect (item, "toggled",
+			  G_CALLBACK (ev_sidebar_annotations_text_annot_button_toggled),
+			  ev_annots);
+	gtk_tool_item_group_insert (GTK_TOOL_ITEM_GROUP (group), item, -1);
+	gtk_widget_show (GTK_WIDGET (item));
+
+	//kcm: add the container to the palette.. 
 	gtk_container_add (GTK_CONTAINER (swindow), ev_annots->priv->palette);
 	gtk_widget_show (ev_annots->priv->palette);
 
@@ -309,14 +330,19 @@ void
 ev_sidebar_annotations_annot_added (EvSidebarAnnotations *sidebar_annots,
 				    EvAnnotation         *annot)
 {
+	//kcm: after adding annot..!
+	printf ("Annot added, finally.. from ev-window\n");
 	GtkToggleToolButton *toolbutton;
+	GtkToggleToolButton *toolbutton1;
 
 	if (EV_IS_ANNOTATION_TEXT (annot)) {
 		toolbutton = GTK_TOGGLE_TOOL_BUTTON (sidebar_annots->priv->annot_text_item);
+		toolbutton1 = GTK_TOGGLE_TOOL_BUTTON (sidebar_annots->priv->annot_highlight_item);
 		g_signal_handlers_block_by_func (toolbutton,
 						 ev_sidebar_annotations_text_annot_button_toggled,
 						 sidebar_annots);
 		gtk_toggle_tool_button_set_active (toolbutton, FALSE);
+		gtk_toggle_tool_button_set_active (toolbutton1, FALSE);
 		g_signal_handlers_unblock_by_func (toolbutton,
 						   ev_sidebar_annotations_text_annot_button_toggled,
 						   sidebar_annots);
@@ -347,6 +373,8 @@ static void
 job_finished_callback (EvJobAnnots          *job,
 		       EvSidebarAnnotations *sidebar_annots)
 {
+	//kcm: what is this?
+	printf ("job_finished_callback\n");
 	EvSidebarAnnotationsPrivate *priv;
 	GtkTreeStore *model;
 	GtkTreeSelection *selection;
