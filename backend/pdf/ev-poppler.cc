@@ -3190,7 +3190,6 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 	poppler_color.green = color.green;
 	poppler_color.blue = color.blue;
 	poppler_annot_set_color (poppler_annot, &poppler_color);
-	printf ("\nPOPPLER - document_add_annotation\n");
 	poppler_page_add_annot (poppler_page, poppler_annot);
 
 	annot_mapping = g_new (EvMapping, 1);
@@ -3259,7 +3258,6 @@ pdf_document_annotations_update_selected_text (EvDocumentAnnotations *document_a
 	poppler_rect.x2 = rect->x2;
 	poppler_rect.y1 = rect->y1;
 	poppler_rect.y2 = rect->y2;
-//	printf ("PopplerRect Coords(view): %f %f %f %f\n",poppler_rect.x1,poppler_rect.y1,poppler_rect.x2,poppler_rect.y2);
 	/* Create a new rect !
 		in view, y is 0 at top, in poppler page y is 0 at bottom..! WTH!
 		also doc get layout for area mein you have to give as in view..
@@ -3273,7 +3271,6 @@ pdf_document_annotations_update_selected_text (EvDocumentAnnotations *document_a
 	poppler_rect.y2 = height - rect->y2;
 
 	poppler_annot_set_rectangle (poppler_annot, &poppler_rect);
-//	printf ("PopplerRect Coords: %f %f %f %f\n",poppler_rect.x1,poppler_rect.y1,poppler_rect.x2,poppler_rect.y2);
 	r = g_slice_new (PopplerRectangle);
 	r->x1 = G_MAXDOUBLE; r->y1 = G_MAXDOUBLE;
 	r->x2 = G_MINDOUBLE; r->y2 = G_MINDOUBLE;
@@ -3326,7 +3323,6 @@ pdf_document_annotations_update_selected_text (EvDocumentAnnotations *document_a
 		EvAnnotationMarkup *markup = EV_ANNOTATION_MARKUP (annot);
 
 		if (ev_annotation_markup_has_popup (markup)) {
-			printf ("\nRESIZE MARKUP RECT.. \n");
 			poppler_annot_markup_set_popup (POPPLER_ANNOT_MARKUP (poppler_annot), &poppler_rect);
 			poppler_rect.y1 = height - poppler_rect.y1;
 			poppler_rect.y2 = height - poppler_rect.y2;						//reverse and set into ev-annot

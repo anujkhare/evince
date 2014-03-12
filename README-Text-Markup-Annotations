@@ -2,7 +2,6 @@ Highlighting- Current Issues :
 
 1) Full of HACKS : Just meant for understanding various aspects of implementing text-markup annotations.
 2) Quite a lot of warnings.
-3) Somewhere changed color of annotations to black.!
 
 CRITICAL :
 
@@ -18,6 +17,6 @@ Other feature related issues :
 2) Annotation list tree.
 3) Add toggle button doesn't toggle after button release.
 4) Empty highlights created.
-5) View not reloading properly.
+5) View not reloading properly - going back (reducing size) , right to left highlighting.!
 
 These are just some of many, this is a WIP.
