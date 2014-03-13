@@ -2007,7 +2007,7 @@ ev_view_handle_cursor_over_xy (EvView *view, gint x, gint y)
 	EvLink       *link;
 	EvFormField  *field;
 	EvAnnotation *annot = NULL;
-
+	//system ("clear");
 	if (view->cursor == EV_VIEW_CURSOR_HIDDEN)
 		return;
 
@@ -2044,8 +2044,12 @@ ev_view_handle_cursor_over_xy (EvView *view, gint x, gint y)
 			ev_view_set_cursor (view, EV_VIEW_CURSOR_LINK);
 		}
 	} else if ((annot = ev_view_get_annotation_at_location (view, x, y))) {
+		//system ("clear");
+		//printf ("annot\n");
 		ev_view_set_cursor (view, EV_VIEW_CURSOR_LINK);
 	} else if (location_in_text (view, x + view->scroll_x, y + view->scroll_y)) {
+		//system ("clear");
+		//printf ("text\n");
 		ev_view_set_cursor (view, EV_VIEW_CURSOR_IBEAM);
 	} else {
 		if (view->cursor == EV_VIEW_CURSOR_LINK ||
@@ -5066,14 +5070,15 @@ ev_view_motion_notify_event (GtkWidget      *widget,
 				//						    &doc_rect);
 				ev_document_annotations_update_selected_text(EV_DOCUMENT_ANNOTATIONS (view->document), view->active_annot, &doc_rect);
 
-				doc_rect.y1=0;
-				doc_rect.y2=700;
-				_ev_view_transform_doc_rect_to_view_rect (view, view->current_page, &doc_rect, &view_rect);
-				view_rect.x -= view->scroll_x;
-				view_rect.y -= view->scroll_y;
-				region = cairo_region_create_rectangle (&view_rect);		//TODO reload only the highlighted part.. NOTE- view->rect doesn't include the text it covers..
-				ev_view_reload_page (view, view->current_page, region);
-				cairo_region_destroy (region);
+				ev_view_reload_page (view, view->current_page, NULL);
+				//doc_rect.y1=0;
+				//doc_rect.y2=700;
+				//_ev_view_transform_doc_rect_to_view_rect (view, view->current_page, &doc_rect, &view_rect);
+				//view_rect.x -= view->scroll_x;
+				//view_rect.y -= view->scroll_y;
+				//region = cairo_region_create_rectangle (&view_rect);		//TODO reload only the highlighted part.. NOTE- view->rect doesn't include the text it covers..
+				//ev_view_reload_page (view, view->current_page, region);
+				//cairo_region_destroy (region);
 			}
 			return FALSE;
 		}
