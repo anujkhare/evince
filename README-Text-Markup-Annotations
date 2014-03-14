@@ -5,18 +5,18 @@ Highlighting- Current Issues :
 
 CRITICAL :
 
-Segmentaion faults whenever:
+Major memory leak somewhere while updating selection.
 
-1) no. of lines (rectangles) exceeds 1.
-2) special text like italics, super/sub script, bold, underline, rotated, different font(?) is encountered.
+Other issues :
 
+0) Selection - try handling similar to text selection.?
 
-Other feature related issues :
+1) Markup window not attached to the entire text, only the view_rect passed.  Becomes active when SAVED and Reloaded.
+   NEEDS WORK - set markup as set of quads/rects rather than one : to enable popup for multiple lines (different sizes/dimensions)..
 
-1) Markup window not attached to highlighted rect by default. Becomes active when SAVED and Reloaded.
 2) Annotation list tree.
-3) Add toggle button doesn't toggle after button release.
+3) Should allow multiple highlights to be added without toggling button again.
 4) Empty highlights created.
-5) View not reloading properly - going back (reducing size) , right to left highlighting.!
+5) View not reloading properly - entire page is being reloaded right now.
 
 These are just some of many, this is a WIP.
