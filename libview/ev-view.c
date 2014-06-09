@@ -1925,6 +1925,12 @@ ev_view_handle_link (EvView *view, EvLink *link)
 			ev_view_reload_page (view, view->current_page, NULL);
 		}
 			break;
+	        case EV_LINK_ACTION_TYPE_RESET_FORM: {
+                        ev_document_forms_reset_form (EV_DOCUMENT_FORMS (view->document), action);
+
+                        ev_view_reload (view);
+                        break;
+                }
 	        case EV_LINK_ACTION_TYPE_GOTO_REMOTE:
 	        case EV_LINK_ACTION_TYPE_EXTERNAL_URI:
 	        case EV_LINK_ACTION_TYPE_LAUNCH:
@@ -2000,6 +2006,9 @@ tip_from_link (EvView *view, EvLink *link)
 			break;
 	        case EV_LINK_ACTION_TYPE_NAMED:
 			msg = tip_from_action_named (action);
+			break;
+                case EV_LINK_ACTION_TYPE_RESET_FORM:
+                        msg = g_strdup_printf (_("Reset form fields"));
 			break;
 	        default:
 			if (title)
