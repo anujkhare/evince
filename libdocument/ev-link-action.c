@@ -480,6 +480,19 @@ ev_link_action_new_layers_state (GList *show_list,
 }
 
 /**
+ * ev_link_action_new_reset_form:
+ *
+ * Returns: a new #EvLinkAction
+ */
+EvLinkAction *
+ev_link_action_new_reset_form ()
+{
+       return EV_LINK_ACTION (g_object_new (EV_TYPE_LINK_ACTION,
+                                            "type", EV_LINK_ACTION_TYPE_RESET_FORM,
+                                            NULL));
+}
+
+/**
  * ev_link_action_equal:
  * @a: a #EvLinkAction
  * @b: a #EvLinkAction

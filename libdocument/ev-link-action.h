@@ -48,6 +48,7 @@ typedef enum {
 	EV_LINK_ACTION_TYPE_LAUNCH,
 	EV_LINK_ACTION_TYPE_NAMED,
 	EV_LINK_ACTION_TYPE_LAYERS_STATE
+	EV_LINK_ACTION_TYPE_RESET_FORM
 	/* We'll probably fill this in more as we support the other types of
 	 * actions */
 } EvLinkActionType;
@@ -74,6 +75,7 @@ EvLinkAction    *ev_link_action_new_named        (const gchar  *name);
 EvLinkAction    *ev_link_action_new_layers_state (GList        *show_list,
 						  GList        *hide_list,
 						  GList        *toggle_list);
+EvLinkAction    *ev_link_action_new_reset_form   (void);
 
 gboolean         ev_link_action_equal            (EvLinkAction *a,
                                                   EvLinkAction *b);
