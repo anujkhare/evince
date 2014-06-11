@@ -1427,6 +1427,15 @@ ev_link_from_action (PdfDocument   *pdf_document,
 	        case POPPLER_ACTION_JAVASCRIPT:
 			unimplemented_action = "POPPLER_ACTION_JAVASCRIPT";
 			break;
+               case POPPLER_ACTION_RESETFORM: {
+                       ev_action = ev_link_action_new_reset_form ();
+
+                        g_object_set_data (G_OBJECT (ev_action),
+                                                "poppler-action",
+                                                action);
+                }
+                       break;
+
 	        case POPPLER_ACTION_UNKNOWN:
 			unimplemented_action = "POPPLER_ACTION_UNKNOWN";
 	}
@@ -2721,6 +2730,21 @@ pdf_document_forms_form_field_choice_get_text (EvDocumentForms *document,
 }
 
 static void
+pdf_document_forms_reset_form (EvDocumentForms  *document,
+                               EvLinkAction     *ev_action)
+{
+       PopplerAction *poppler_action;
+
+       poppler_action = (PopplerAction *) (g_object_get_data (G_OBJECT (ev_action), "poppler-action"));
+        if (!poppler_action)
+                return;
+
+        poppler_forms_reset_form (poppler_action);
+
+        PDF_DOCUMENT (document)->forms_modified = TRUE;
+}
+
+static void
 pdf_document_document_forms_iface_init (EvDocumentFormsInterface *iface)
 {
 	iface->get_form_fields = pdf_document_forms_get_form_fields;
@@ -2737,6 +2761,7 @@ pdf_document_document_forms_iface_init (EvDocumentFormsInterface *iface)
 	iface->form_field_choice_unselect_all = pdf_document_forms_form_field_choice_unselect_all;
 	iface->form_field_choice_set_text = pdf_document_forms_form_field_choice_set_text;
 	iface->form_field_choice_get_text = pdf_document_forms_form_field_choice_get_text;
+        iface->reset_form = pdf_document_forms_reset_form;
 }
 
 /* Annotations */
