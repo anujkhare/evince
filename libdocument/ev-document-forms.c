@@ -159,3 +159,12 @@ ev_document_forms_form_field_choice_get_text (EvDocumentForms   *document_forms,
 
 	return iface->form_field_choice_get_text (document_forms, field);
 }
+
+void
+ev_document_forms_reset_form (EvDocumentForms   *document_forms,
+                              EvLinkAction      *ev_action)
+{
+       EvDocumentFormsInterface *iface = EV_DOCUMENT_FORMS_GET_IFACE (document_forms);
+
+       return iface->reset_form (document_forms, ev_action);
+}
