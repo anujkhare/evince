@@ -3266,13 +3266,21 @@ ev_view_handle_annotation (EvView       *view,
 }
 
 static void
+get_positive_rectangle (GdkRectangle *rect,
+                        GdkRectangle *new_rect)
+{
+        new_rect->x = (rect->width > 0)? rect->x: rect->x + rect->width;
+        new_rect->y = (rect->height > 0)? rect->y: rect->y + rect->height;
+        new_rect->width  = (rect->width > 0)? rect->width: -rect->width;
+        new_rect->height = (rect->height > 0)? rect->height: -rect->height;
+}
+
+static void
 ev_view_create_annotation (EvView          *view,
 			   EvAnnotationType annot_type,
-			   gint             x,
-			   gint             y)
+			   GdkRectangle     annot_rect)
 {
 	EvAnnotation   *annot;
-	GdkPoint        point;
 	GdkRectangle    page_area;
 	GtkBorder       border;
 	EvRectangle     doc_rect, popup_rect;
@@ -3281,19 +3289,24 @@ ev_view_create_annotation (EvView          *view,
 	GdkRectangle    view_rect;
 	cairo_region_t *region;
 
-	point.x = x;
-	point.y = y;
+	get_positive_rectangle (&annot_rect, &view_rect);
+
 	ev_view_get_page_extents (view, view->current_page, &page_area, &border);
-	_ev_view_transform_view_point_to_doc_point (view, &point, &page_area, &border,
-						    &doc_rect.x1, &doc_rect.y1);
-	doc_rect.x2 = doc_rect.x1 + 24;
-	doc_rect.y2 = doc_rect.y1 + 24;
+        _ev_view_transform_view_rect_to_doc_rect (view, &view_rect, &page_area, &border, &doc_rect);
 
 	ev_document_doc_mutex_lock ();
 	page = ev_document_get_page (view->document, view->current_page);
 	switch (annot_type) {
 	case EV_ANNOTATION_TYPE_TEXT:
+	        doc_rect.x1 = doc_rect.x2;
+	        doc_rect.y1 = doc_rect.y2;
+	        doc_rect.x2 = doc_rect.x1 + 24;
+	        doc_rect.y2 = doc_rect.y1 + 24;
+
 		annot = ev_annotation_text_new (page);
+		break;
+	case EV_ANNOTATION_TYPE_FREE_TEXT:
+		annot = ev_annotation_free_text_new (page);
 		break;
 	case EV_ANNOTATION_TYPE_ATTACHMENT:
 		/* TODO */
@@ -3341,9 +3354,6 @@ ev_view_create_annotation (EvView          *view,
 		ev_view_annotation_show_popup_window (view, window);
 	}
 
-	_ev_view_transform_doc_rect_to_view_rect (view, view->current_page, &doc_rect, &view_rect);
-	view_rect.x -= view->scroll_x;
-	view_rect.y -= view->scroll_y;
 	region = cairo_region_create_rectangle (&view_rect);
 	ev_view_reload_page (view, view->current_page, region);
 	cairo_region_destroy (region);
@@ -4434,6 +4444,23 @@ draw_debug_borders (EvView       *view,
 }
 #endif
 
+static void
+draw_annotation_rectangle (EvView  *view,
+                           cairo_t *cr)
+{
+        GdkRectangle draw_rect;
+        double dash_length = 5;
+
+        get_positive_rectangle (&view->annot_rect, &draw_rect);
+        cairo_save (cr);
+        cairo_rectangle (cr, draw_rect.x,  draw_rect.y,
+                         draw_rect.width, draw_rect.height);
+        cairo_set_source_rgb (cr, 1, 0, 0);
+        cairo_set_dash (cr, &dash_length, 1, 0);
+        cairo_stroke (cr);
+        cairo_restore (cr);
+}
+
 static gboolean
 ev_view_draw (GtkWidget *widget,
               cairo_t   *cr)
@@ -4467,6 +4494,8 @@ ev_view_draw (GtkWidget *widget,
 
 		draw_one_page (view, i, cr, &page_area, &border, &clip_rect, &page_ready);
 
+		if (page_ready && view->adding_annot)
+		        draw_annotation_rectangle (view, cr);
 		if (page_ready && should_draw_caret_cursor (view, i))
 			draw_caret_cursor (view, cr);
 		if (page_ready && view->find_pages && view->highlight_find_results)
@@ -4855,12 +4884,9 @@ ev_view_button_press_event (GtkWidget      *widget,
 		ev_annotation_window_ungrab_focus (window);
 		view->window_child_focus = NULL;
 	}
-	
+        
 	view->pressed_button = event->button;
 	view->selection_info.in_drag = FALSE;
-
-	if (view->adding_annot)
-		return FALSE;
 
 	if (view->scroll_info.autoscrolling)
 		return TRUE;
@@ -4872,6 +4898,14 @@ ev_view_button_press_event (GtkWidget      *widget,
 			EvFormField *field;
 			EvMapping *link;
 			gint page;
+
+                        if (view->adding_annot) {
+                                view->annot_rect_prev.x = view->annot_rect.x = event->x + view->scroll_x;
+                                view->annot_rect_prev.y = view->annot_rect.y = event->y + view->scroll_y;
+                                view->annot_rect_prev.width  = view->annot_rect.width = 0;
+                                view->annot_rect_prev.height = view->annot_rect.height = 0;
+                                return FALSE;
+                        }
 
 			if (event->state & GDK_CONTROL_MASK)
 				return ev_view_synctex_backward_search (view, event->x , event->y);
@@ -5154,6 +5188,30 @@ ev_view_scroll_drag_release (EvView *view)
 }
 
 static gboolean
+annot_rect_update_idle_cb (EvView *view)
+{
+        cairo_region_t *redraw_region = NULL;
+        GdkRectangle    annot_rect;
+
+        /* Create the rectangle to be drawn */
+        get_positive_rectangle (&view->annot_rect, &annot_rect);
+        annot_rect.x -= 2;
+        annot_rect.y -= 2;
+        annot_rect.width  += 4;
+        annot_rect.height += 4;
+
+        /* Region to redraw includes current rect, along with the one previously drawn */
+        redraw_region = cairo_region_create_rectangle (&view->annot_rect_prev);
+        cairo_region_union_rectangle (redraw_region, &annot_rect);
+
+        view->annot_rect_prev = annot_rect;
+
+        gdk_window_invalidate_region (gtk_widget_get_window (GTK_WIDGET (view)), redraw_region, TRUE);
+        view->annot_rect_update_id = 0;
+        return FALSE;
+}
+
+static gboolean
 ev_view_motion_notify_event (GtkWidget      *widget,
 			     GdkEventMotion *event)
 {
@@ -5222,6 +5280,14 @@ ev_view_motion_notify_event (GtkWidget      *widget,
 	
 	switch (view->pressed_button) {
 	case 1:
+                if (view->adding_annot) {
+                        view->annot_rect.width  = (event->x + view->scroll_x) - view->annot_rect.x;
+                        view->annot_rect.height = (event->y + view->scroll_y) - view->annot_rect.y;
+                        if (!view->annot_rect_update_id)
+                                view->annot_rect_update_id = g_idle_add ((GSourceFunc) annot_rect_update_idle_cb, view);
+                        return TRUE;
+                }
+
 		/* For the Evince 0.4.x release, we limit selection to un-rotated
 		 * documents only.
 		 */
@@ -5344,6 +5410,10 @@ ev_view_button_release_event (GtkWidget      *widget,
 
 	view->drag_info.in_drag = FALSE;
 
+	if (view->annot_rect_update_id) {
+	        g_source_remove (view->annot_rect_update_id);
+	        view->annot_rect_update_id = 0;
+       }
 	if (view->adding_annot && view->pressed_button == 1) {
 		view->adding_annot = FALSE;
 		ev_view_handle_cursor_over_xy (view, event->x, event->y);
@@ -5351,8 +5421,7 @@ ev_view_button_release_event (GtkWidget      *widget,
 
 		ev_view_create_annotation (view,
 					   view->adding_annot_type,
-					   event->x + view->scroll_x,
-					   event->y + view->scroll_y);
+					   view->annot_rect);
 
 		return FALSE;
 	}
@@ -6480,6 +6549,11 @@ ev_view_dispose (GObject *object)
 	if (view->selection_update_id) {
 	    g_source_remove (view->selection_update_id);
 	    view->selection_update_id = 0;
+	}
+
+	if (view->annot_rect_update_id) {
+	    g_source_remove (view->annot_rect_update_id);
+	    view->annot_rect_update_id = 0;
 	}
 
 	if (view->scroll_info.timeout_id) {
