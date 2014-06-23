@@ -48,6 +48,7 @@ void                 ev_annotation_properties_dialog_get_rgba            (EvAnno
 gdouble              ev_annotation_properties_dialog_get_opacity         (EvAnnotationPropertiesDialog *dialog);
 gboolean             ev_annotation_properties_dialog_get_popup_is_open   (EvAnnotationPropertiesDialog *dialog);
 EvAnnotationTextIcon ev_annotation_properties_dialog_get_text_icon       (EvAnnotationPropertiesDialog *dialog);
+const gchar         *ev_annotation_properties_dialog_get_font            (EvAnnotationPropertiesDialog *dialog);
 
 G_END_DECLS
 
