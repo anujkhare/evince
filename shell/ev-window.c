@@ -6442,6 +6442,24 @@ ev_window_popup_cmd_annot_properties (GSimpleAction *action,
 			mask |= EV_ANNOTATIONS_SAVE_TEXT_ICON;
 	}
 
+        if (EV_IS_ANNOTATION_FREE_TEXT (annot)) {
+                EvAnnotationFreeText         *annot_ftext;
+                PangoFontDescription         *pango_font;
+                const gchar                  *font;
+                const gchar                  *font_family;
+                gdouble                       font_size;
+
+                font = ev_annotation_properties_dialog_get_font (dialog);
+
+                pango_font = pango_font_description_from_string (font);
+                font_family = pango_font_description_get_family (pango_font);
+                font_size = pango_font_description_get_size (pango_font)/ PANGO_SCALE,
+
+                annot_ftext = EV_ANNOTATION_FREE_TEXT (annot);
+                if (ev_annotation_free_text_set_font_size (annot_ftext, font_size))
+                        mask |= EV_ANNOTATIONS_SAVE_FONT;
+        }
+
 	if (mask != EV_ANNOTATIONS_SAVE_NONE) {
 		ev_document_doc_mutex_lock ();
 		ev_document_annotations_save_annotation (EV_DOCUMENT_ANNOTATIONS (window->priv->document),

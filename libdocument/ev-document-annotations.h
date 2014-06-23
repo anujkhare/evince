@@ -56,10 +56,13 @@ typedef enum {
 	EV_ANNOTATIONS_SAVE_TEXT_ICON     = 1 << 7,
 
 	/* Attachment Annotations */
-	EV_ANNOTATIONS_SAVE_ATTACHMENT    = 1 << 8,
+	EV_ANNOTATIONS_SAVE_ATTACHMENT    = 1 << 7,
+
+	/* Text Annotations */
+        EV_ANNOTATIONS_SAVE_FONT          = 1 << 9,
 
 	/* Save all */
-	EV_ANNOTATIONS_SAVE_ALL           = (1 << 9) - 1
+	EV_ANNOTATIONS_SAVE_ALL           = (1 << 11) - 1
 } EvAnnotationsSaveMask;
 
 typedef struct _EvDocumentAnnotations          EvDocumentAnnotations;

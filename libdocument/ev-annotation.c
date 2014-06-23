@@ -60,6 +60,7 @@ struct _EvAnnotationFreeText {
 	EvAnnotation parent;
 
         gchar                        *font_name;
+        gdouble                       font_size;
 };
 
 struct _EvAnnotationFreeTextClass {
@@ -106,6 +107,12 @@ enum {
 enum {
 	PROP_TEXT_ICON = PROP_MARKUP_POPUP_IS_OPEN + 1,
 	PROP_TEXT_IS_OPEN
+};
+
+/* EvAnnotationFreeText */
+enum {
+        PROP_FREE_TEXT_FONT_NAME = PROP_MARKUP_POPUP_IS_OPEN + 1,
+        PROP_FREE_TEXT_FONT_SIZE,
 };
 
 /* EvAnnotationAttachment */
@@ -1119,12 +1126,100 @@ ev_annotation_free_text_init (EvAnnotationFreeText *annot)
 {
 	EV_ANNOTATION (annot)->type = EV_ANNOTATION_TYPE_FREE_TEXT;
 }
+
+static void
+ev_annotation_free_text_finalize (GObject *object)
+{
+        EvAnnotationFreeText *annot = EV_ANNOTATION_FREE_TEXT (object);
+
+        if (annot->font_name) {
+                g_free (annot->font_name);
+                annot->font_name = NULL;
+        }
+
+        G_OBJECT_CLASS (ev_annotation_free_text_parent_class)->finalize (object);
+}
+
+static void
+ev_annotation_free_text_set_property (GObject      *object,
+				      guint         prop_id,
+				      const GValue *value,
+				      GParamSpec   *pspec)
+{
+        EvAnnotationFreeText *annot = EV_ANNOTATION_FREE_TEXT (object);
+
+        if (prop_id < PROP_FREE_TEXT_FONT_NAME) {
+                ev_annotation_markup_set_property (object, prop_id, value, pspec);
+                return;
+        }
+
+        switch (prop_id) {
+        case PROP_FREE_TEXT_FONT_NAME:
+                ev_annotation_free_text_set_font_name (annot, g_value_get_string (value));
+                break;
+        case PROP_FREE_TEXT_FONT_SIZE:
+                ev_annotation_free_text_set_font_size (annot, g_value_get_double (value));
+                break;
+        default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        }
+}
+
+static void
+ev_annotation_free_text_get_property (GObject    *object,
+				 guint       prop_id,
+				 GValue     *value,
+				 GParamSpec *pspec)
+{
+	EvAnnotationFreeText *annot = EV_ANNOTATION_FREE_TEXT (object);
+
+	if (prop_id < PROP_FREE_TEXT_FONT_NAME) {
+		ev_annotation_markup_get_property (object, prop_id, value, pspec);
+		return;
+	}
+
+	switch (prop_id) {
+	case PROP_FREE_TEXT_FONT_NAME:
+		g_value_set_string (value, annot->font_name);
+		break;
+	case PROP_FREE_TEXT_FONT_SIZE:
+		g_value_set_double (value, annot->font_size);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
 static void
 ev_annotation_free_text_class_init (EvAnnotationFreeTextClass *klass)
 {
 	GObjectClass *g_object_class = G_OBJECT_CLASS (klass);
 
 	ev_annotation_markup_class_install_properties (g_object_class);
+
+	g_object_class->set_property = ev_annotation_free_text_set_property;
+	g_object_class->get_property = ev_annotation_free_text_get_property;
+        g_object_class->finalize     = ev_annotation_free_text_finalize;
+
+	g_object_class_install_property (g_object_class,
+					 PROP_FREE_TEXT_FONT_NAME,
+					 g_param_spec_string ("font-name",
+							      "FontName",
+							      "The text font name of the free text annotation",
+                                                              NULL,
+							      G_PARAM_CONSTRUCT |
+							      G_PARAM_READWRITE |
+                                                              G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property (g_object_class,
+					 PROP_FREE_TEXT_FONT_SIZE,
+					 g_param_spec_double  ("font-size",
+							       "FontSize",
+							       "The text font size of the free text annotation",
+                                                               0, 100, 12.0,
+							       G_PARAM_CONSTRUCT |
+							       G_PARAM_READWRITE
+                                                               ));
 }
 
 static void
@@ -1139,6 +1234,54 @@ ev_annotation_free_text_new (EvPage *page)
 					    "page", page,
                                             "has-popup", FALSE,
 					    NULL));
+}
+
+const gchar *
+ev_annotation_free_text_get_font_name (EvAnnotationFreeText *annot)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), NULL);
+
+        return annot->font_name;
+}
+
+gboolean
+ev_annotation_free_text_set_font_name (EvAnnotationFreeText   *annot,
+                                       const gchar            *font_name)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), FALSE);
+
+        if (annot->font_name) {
+                g_free (annot->font_name);
+                annot->font_name = NULL;
+        }
+
+        annot->font_name = font_name ? g_strdup (font_name) : NULL;
+
+        g_object_notify (G_OBJECT (annot), "font_name");
+        return TRUE;
+}
+
+gdouble
+ev_annotation_free_text_get_font_size (EvAnnotationFreeText *annot)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), 0);
+
+        return annot->font_size;
+}
+
+gboolean
+ev_annotation_free_text_set_font_size (EvAnnotationFreeText   *annot,
+                                       gdouble                 font_size)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), FALSE);
+
+        if (font_size == annot->font_size)
+                return FALSE;
+
+        annot->font_size = font_size;
+
+        g_object_notify (G_OBJECT (annot), "font_size");
+        return TRUE;
 }
 
 /* EvAnnotationAttachment */
