@@ -3222,7 +3222,8 @@ ev_view_handle_annotation (EvView       *view,
 		GtkWidget *window;
 
 		window = g_object_get_data (G_OBJECT (annot), "popup");
-		ev_view_annotation_show_popup_window (view, window);
+                if (ev_annotation_markup_has_popup (EV_ANNOTATION_MARKUP (annot)))
+		        ev_view_annotation_show_popup_window (view, window);
 	}
 
         switch (ev_annotation_get_annotation_type (annot)) {
@@ -3306,7 +3307,8 @@ ev_view_create_annotation (EvView          *view,
 
 	ev_annotation_set_color (annot, &color);
 
-	if (EV_IS_ANNOTATION_MARKUP (annot)) {
+	if (EV_IS_ANNOTATION_MARKUP (annot) &&
+            ev_annotation_markup_has_popup (EV_ANNOTATION_MARKUP (annot))) {
 		popup_rect.x1 = doc_rect.x2;
 		popup_rect.x2 = popup_rect.x1 + 200;
 		popup_rect.y1 = doc_rect.y2;
@@ -3327,7 +3329,8 @@ ev_view_create_annotation (EvView          *view,
 	if (!ev_page_cache_get_annot_mapping (view->page_cache, view->current_page))
 		ev_page_cache_mark_dirty (view->page_cache, view->current_page);
 
-	if (EV_IS_ANNOTATION_MARKUP (annot)) {
+	if (EV_IS_ANNOTATION_MARKUP (annot) &&
+            ev_annotation_get_annotation_type (annot) != EV_ANNOTATION_TYPE_FREE_TEXT) {
 		GtkWindow *parent;
 		GtkWidget *window;
 
