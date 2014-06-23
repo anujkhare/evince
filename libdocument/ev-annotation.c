@@ -61,6 +61,7 @@ struct _EvAnnotationFreeText {
 
         gchar                        *font_name;
         gdouble                       font_size;
+        EvAnnotationFreeTextQuadding  quadding;
 };
 
 struct _EvAnnotationFreeTextClass {
@@ -113,6 +114,7 @@ enum {
 enum {
         PROP_FREE_TEXT_FONT_NAME = PROP_MARKUP_POPUP_IS_OPEN + 1,
         PROP_FREE_TEXT_FONT_SIZE,
+        PROP_FREE_TEXT_QUADDING
 };
 
 /* EvAnnotationAttachment */
@@ -1160,6 +1162,9 @@ ev_annotation_free_text_set_property (GObject      *object,
         case PROP_FREE_TEXT_FONT_SIZE:
                 ev_annotation_free_text_set_font_size (annot, g_value_get_double (value));
                 break;
+        case PROP_FREE_TEXT_QUADDING:
+                ev_annotation_free_text_set_quadding (annot, g_value_get_enum (value));
+                break;
         default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         }
@@ -1184,6 +1189,9 @@ ev_annotation_free_text_get_property (GObject    *object,
 		break;
 	case PROP_FREE_TEXT_FONT_SIZE:
 		g_value_set_double (value, annot->font_size);
+		break;
+	case PROP_FREE_TEXT_QUADDING:
+		g_value_set_enum (value, annot->quadding);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1220,6 +1228,17 @@ ev_annotation_free_text_class_init (EvAnnotationFreeTextClass *klass)
 							       G_PARAM_CONSTRUCT |
 							       G_PARAM_READWRITE
                                                                ));
+
+	g_object_class_install_property (g_object_class,
+					 PROP_FREE_TEXT_QUADDING,
+					 g_param_spec_enum ("quadding",
+							    "Quadding",
+							    "The text quadding of the free text annotation",
+                                                            EV_TYPE_ANNOTATION_FREE_TEXT_QUADDING,
+                                                            EV_ANNOTATION_FREE_TEXT_QUADDING_LEFT,
+							    G_PARAM_CONSTRUCT |
+							    G_PARAM_READWRITE
+                                                            ));
 }
 
 static void
@@ -1281,6 +1300,29 @@ ev_annotation_free_text_set_font_size (EvAnnotationFreeText   *annot,
         annot->font_size = font_size;
 
         g_object_notify (G_OBJECT (annot), "font_size");
+        return TRUE;
+}
+
+EvAnnotationFreeTextQuadding
+ev_annotation_free_text_get_quadding (EvAnnotationFreeText *annot)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), 0);
+
+        return annot->quadding;
+}
+
+gboolean
+ev_annotation_free_text_set_quadding (EvAnnotationFreeText         *annot,
+                                      EvAnnotationFreeTextQuadding quadding)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), FALSE);
+
+        if (annot->quadding == quadding)
+                return FALSE;
+
+        annot->quadding = quadding;
+
+        g_object_notify (G_OBJECT (annot), "quadding");
         return TRUE;
 }
 
