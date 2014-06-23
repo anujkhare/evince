@@ -2853,6 +2853,8 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
                         ev_ftext = EV_ANNOTATION_FREE_TEXT (ev_annot);
                         ev_annotation_free_text_set_font_size (ev_ftext,
                                                                poppler_annot_free_text_get_font_size (poppler_ftext));
+                        ev_annotation_free_text_set_quadding (ev_ftext,
+                                                              (EvAnnotationFreeTextQuadding)poppler_annot_free_text_get_quadding (poppler_ftext));
 		}
 			break;
 	        case POPPLER_ANNOT_FILE_ATTACHMENT: {
@@ -3287,6 +3289,11 @@ pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annota
                 if (mask & EV_ANNOTATIONS_SAVE_FONT) {
                         poppler_annot_free_text_set_font_size (ftext,
                                                                ev_annotation_free_text_get_font_size (ev_ftext));
+                }
+
+                if (mask & EV_ANNOTATIONS_SAVE_QUADDING) {
+                        poppler_annot_free_text_set_quadding (ftext,
+                                                              (PopplerAnnotFreeTextQuadding) ev_annotation_free_text_get_quadding (ev_ftext));
                 }
         }
 

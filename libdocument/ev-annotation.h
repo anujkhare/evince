@@ -108,6 +108,12 @@ typedef enum {
 	EV_ANNOTATION_TEXT_ICON_UNKNOWN
 } EvAnnotationTextIcon;
 
+typedef enum {
+        EV_ANNOTATION_FREE_TEXT_QUADDING_LEFT,
+        EV_ANNOTATION_FREE_TEXT_QUADDING_RIGHT,
+        EV_ANNOTATION_FREE_TEXT_QUADDING_CENTER
+} EvAnnotationFreeTextQuadding;
+
 /* EvAnnotation */
 GType                ev_annotation_get_type                  (void) G_GNUC_CONST;
 EvAnnotationType     ev_annotation_get_annotation_type       (EvAnnotation           *annot);
@@ -175,6 +181,10 @@ gboolean             ev_annotation_free_text_set_font_name   (EvAnnotationFreeTe
 gdouble              ev_annotation_free_text_get_font_size   (EvAnnotationFreeText   *annot);
 gboolean             ev_annotation_free_text_set_font_size   (EvAnnotationFreeText   *annot,
                                                               gdouble                 font_size);
+gboolean             ev_annotation_free_text_set_quadding    (EvAnnotationFreeText   *annot,
+                                                              EvAnnotationFreeTextQuadding quadding);
+EvAnnotationFreeTextQuadding ev_annotation_free_text_get_quadding (EvAnnotationFreeText   *annot);
+
 /* EvAnnotationAttachment */
 GType                ev_annotation_attachment_get_type       (void) G_GNUC_CONST;
 EvAnnotation        *ev_annotation_attachment_new            (EvPage                 *page,

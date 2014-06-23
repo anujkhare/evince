@@ -60,6 +60,7 @@ typedef enum {
 
 	/* Text Annotations */
         EV_ANNOTATIONS_SAVE_FONT          = 1 << 9,
+        EV_ANNOTATIONS_SAVE_QUADDING      = 1 << 10,
 
 	/* Save all */
 	EV_ANNOTATIONS_SAVE_ALL           = (1 << 11) - 1
