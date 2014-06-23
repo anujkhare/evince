@@ -202,6 +202,9 @@ struct _EvView {
 	EvViewWindowChild *window_child_focus;
 	gboolean           adding_annot;
 	EvAnnotationType   adding_annot_type;
+	GdkRectangle       annot_rect;
+	GdkRectangle       annot_rect_prev;
+	guint              annot_rect_update_id;
 
 	/* Focus */
 	EvMapping *focused_element;
