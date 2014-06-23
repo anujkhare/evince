@@ -56,6 +56,16 @@ struct _EvAnnotationTextClass {
 	EvAnnotationClass parent_class;
 };
 
+struct _EvAnnotationFreeText {
+	EvAnnotation parent;
+
+        gchar                        *font_name;
+};
+
+struct _EvAnnotationFreeTextClass {
+	EvAnnotationClass parent_class;
+};
+
 struct _EvAnnotationAttachment {
 	EvAnnotation parent;
 
@@ -68,6 +78,7 @@ struct _EvAnnotationAttachmentClass {
 
 static void ev_annotation_markup_default_init          (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_text_markup_iface_init       (EvAnnotationMarkupInterface *iface);
+static void ev_annotation_free_text_markup_iface_init  (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_attachment_markup_iface_init (EvAnnotationMarkupInterface *iface);
 
 /* EvAnnotation */
@@ -108,6 +119,11 @@ G_DEFINE_TYPE_WITH_CODE (EvAnnotationText, ev_annotation_text, EV_TYPE_ANNOTATIO
 	 {
 		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
 					ev_annotation_text_markup_iface_init);
+	 });
+G_DEFINE_TYPE_WITH_CODE (EvAnnotationFreeText, ev_annotation_free_text, EV_TYPE_ANNOTATION,
+	 {
+		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
+					ev_annotation_free_text_markup_iface_init);
 	 });
 G_DEFINE_TYPE_WITH_CODE (EvAnnotationAttachment, ev_annotation_attachment, EV_TYPE_ANNOTATION,
 	 {
@@ -1094,6 +1110,34 @@ ev_annotation_text_set_is_open (EvAnnotationText *text,
 	g_object_notify (G_OBJECT (text), "is_open");
 
 	return TRUE;
+}
+
+/* EvAnnotationFreeText */
+static void
+ev_annotation_free_text_init (EvAnnotationFreeText *annot)
+{
+	EV_ANNOTATION (annot)->type = EV_ANNOTATION_TYPE_FREE_TEXT;
+}
+static void
+ev_annotation_free_text_class_init (EvAnnotationFreeTextClass *klass)
+{
+	GObjectClass *g_object_class = G_OBJECT_CLASS (klass);
+
+	ev_annotation_markup_class_install_properties (g_object_class);
+}
+
+static void
+ev_annotation_free_text_markup_iface_init (EvAnnotationMarkupInterface *iface)
+{
+}
+
+EvAnnotation *
+ev_annotation_free_text_new (EvPage *page)
+{
+	return EV_ANNOTATION (g_object_new (EV_TYPE_ANNOTATION_FREE_TEXT,
+					    "page", page,
+                                            "has-popup", FALSE,
+					    NULL));
 }
 
 /* EvAnnotationAttachment */
