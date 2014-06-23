@@ -169,6 +169,12 @@ gboolean             ev_annotation_text_set_is_open          (EvAnnotationText  
 /* EvAnnotationFreeText */
 GType                ev_annotation_free_text_get_type        (void) G_GNUC_CONST;
 EvAnnotation        *ev_annotation_free_text_new             (EvPage                 *page);
+const gchar         *ev_annotation_free_text_get_font_name   (EvAnnotationFreeText   *annot);
+gboolean             ev_annotation_free_text_set_font_name   (EvAnnotationFreeText   *annot,
+                                                              const gchar            *font_name);
+gdouble              ev_annotation_free_text_get_font_size   (EvAnnotationFreeText   *annot);
+gboolean             ev_annotation_free_text_set_font_size   (EvAnnotationFreeText   *annot,
+                                                              gdouble                 font_size);
 /* EvAnnotationAttachment */
 GType                ev_annotation_attachment_get_type       (void) G_GNUC_CONST;
 EvAnnotation        *ev_annotation_attachment_new            (EvPage                 *page,
