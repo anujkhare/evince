@@ -1459,3 +1459,33 @@ ev_annotation_attachment_set_attachment (EvAnnotationAttachment *annot,
 
 	return TRUE;
 }
+
+/* EvAnnotationCalloutLine */
+G_DEFINE_BOXED_TYPE (EvAnnotationCalloutLine, ev_annotation_callout_line,
+                     ev_annotation_callout_line_copy,
+                     ev_annotation_callout_line_free)
+
+EvAnnotationCalloutLine *
+ev_annotation_callout_line_new (void)
+{
+        return g_new0 (EvAnnotationCalloutLine, 1);
+}
+
+EvAnnotationCalloutLine *
+ev_annotation_callout_line_copy (EvAnnotationCalloutLine *callout)
+{
+  EvAnnotationCalloutLine *new_callout;
+
+  g_return_val_if_fail (callout != NULL, NULL);
+
+  new_callout = g_new0 (EvAnnotationCalloutLine, 1);
+  *new_callout = *callout;
+
+  return new_callout;
+}
+
+void
+ev_annotation_callout_line_free (EvAnnotationCalloutLine *callout)
+{
+        g_free (callout);
+}
