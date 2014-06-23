@@ -3038,6 +3038,25 @@ ev_view_get_annotation_at_location (EvView  *view,
 	return annotation_mapping ? annotation_mapping->data : NULL;
 }
 
+static cairo_region_t *
+ev_view_annotation_get_region (EvView       *view,
+			       EvAnnotation *annot)
+{
+	GdkRectangle   view_area;
+	EvMappingList *annot_mapping;
+        gint           page;
+
+        page = (ev_annotation_get_page (annot))->index;
+
+	annot_mapping = ev_page_cache_get_annot_mapping (view->page_cache,
+							 page);
+	ev_view_get_area_from_mapping (view, page,
+				       annot_mapping,
+				       annot, &view_area);
+
+	return cairo_region_create_rectangle (&view_area);
+}
+
 static void
 ev_view_annotation_show_popup_window (EvView    *view,
 				      GtkWidget *window)
