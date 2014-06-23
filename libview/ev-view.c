@@ -3075,6 +3075,104 @@ ev_view_annotation_show_popup_window (EvView    *view,
 }
 
 static void
+ev_view_annotation_free_text_save (EvView    *view,
+		                   GtkWidget *widget)
+{
+        gchar          *text = NULL;
+        EvAnnotation   *annot;
+        gboolean        changed;
+        GtkTextBuffer  *buffer;
+        GtkTextIter     start, end;
+
+        if (!view->document)
+                return;
+
+        annot = g_object_get_data (G_OBJECT (widget), "annot");
+
+        buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (widget));
+
+
+        gtk_text_buffer_get_bounds (buffer, &start, &end);
+        text = gtk_text_buffer_get_text (GTK_TEXT_BUFFER (buffer),
+                                         &start, &end, FALSE);
+
+        changed = ev_annotation_set_contents (annot, text);
+
+        if (changed) {
+                cairo_region_t  *annot_region;
+                annot_region = ev_view_annotation_get_region (view, annot);
+                ev_view_reload_page (view, ev_annotation_get_page (annot)->index, annot_region);
+                cairo_region_destroy (annot_region);
+        }
+}
+
+static gboolean
+ev_view_annotation_free_text_focus_out (GtkWidget     *widget,
+				      GdkEventFocus *event,
+				      EvView        *view)
+{
+        ev_view_annotation_free_text_save (view, widget);
+
+        return FALSE;
+}
+
+static GtkJustification
+get_gtk_justification (EvAnnotationFreeTextQuadding quadding)
+{
+        switch (quadding) {
+                case EV_ANNOTATION_FREE_TEXT_QUADDING_LEFT:     //0
+                        return GTK_JUSTIFY_LEFT;
+                break;
+
+                case EV_ANNOTATION_FREE_TEXT_QUADDING_CENTER:   //1
+                        return GTK_JUSTIFY_RIGHT;
+                break;
+
+                case EV_ANNOTATION_FREE_TEXT_QUADDING_RIGHT:    //2
+                        return GTK_JUSTIFY_CENTER;
+                break;
+
+                default:
+                        return GTK_JUSTIFY_LEFT;
+        }
+}
+
+static GtkWidget *
+ev_view_annotation_free_text_create_widget (EvView       *view,
+				            EvAnnotation *annot)
+{
+        GtkWidget       *text = NULL;
+        GtkTextBuffer   *buffer;
+        gchar           *txt;
+
+        text = gtk_text_view_new ();
+        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text), GTK_WRAP_WORD);
+        gtk_text_view_set_justification (GTK_TEXT_VIEW (text),
+                                         get_gtk_justification (ev_annotation_free_text_get_quadding (EV_ANNOTATION_FREE_TEXT(annot))));
+
+        buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (text));               //FIXME const
+
+        txt = ev_annotation_get_contents (annot);
+        if (txt) {
+                gtk_text_buffer_set_text (buffer, txt, -1);
+        }
+
+        g_object_set_data_full (G_OBJECT (text), "annot",
+                                g_object_ref (annot),
+                                (GDestroyNotify)g_object_unref);
+
+        g_signal_connect (text, "focus-out-event",
+                          G_CALLBACK (ev_view_annotation_free_text_focus_out),
+                          view);
+
+        g_signal_connect_swapped (annot, "notify::contents",
+                                  G_CALLBACK (ev_view_annotation_save_contents),
+                                  view);
+
+        return text;
+}
+
+static void
 ev_view_handle_annotation (EvView       *view,
 			   EvAnnotation *annot,
 			   gdouble       x,
