@@ -2849,6 +2849,10 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
                         poppler_ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
 
 			ev_annot = ev_annotation_free_text_new (page);
+
+                        ev_ftext = EV_ANNOTATION_FREE_TEXT (ev_annot);
+                        ev_annotation_free_text_set_font_size (ev_ftext,
+                                                               poppler_annot_free_text_get_font_size (poppler_ftext));
 		}
 			break;
 	        case POPPLER_ANNOT_FILE_ATTACHMENT: {
@@ -3275,6 +3279,16 @@ pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annota
 			poppler_annot_text_set_icon (text, get_poppler_annot_text_icon (icon));
 		}
 	}
+
+        if (EV_IS_ANNOTATION_FREE_TEXT (annot)) {
+                EvAnnotationFreeText *ev_ftext = EV_ANNOTATION_FREE_TEXT (annot);
+                PopplerAnnotFreeText *ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
+
+                if (mask & EV_ANNOTATIONS_SAVE_FONT) {
+                        poppler_annot_free_text_set_font_size (ftext,
+                                                               ev_annotation_free_text_get_font_size (ev_ftext));
+                }
+        }
 
 	PDF_DOCUMENT (document_annotations)->annots_modified = TRUE;
 }
