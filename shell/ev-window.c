@@ -6346,12 +6346,14 @@ ev_window_popup_cmd_annot_properties (GSimpleAction *action,
 	}
 
         if (EV_IS_ANNOTATION_FREE_TEXT (annot)) {
+                EvAnnotationFreeTextQuadding  quadding;
                 EvAnnotationFreeText         *annot_ftext;
                 PangoFontDescription         *pango_font;
                 const gchar                  *font;
                 const gchar                  *font_family;
                 gdouble                       font_size;
 
+                quadding = ev_annotation_properties_dialog_get_quadding (dialog);
                 font = ev_annotation_properties_dialog_get_font (dialog);
 
                 pango_font = pango_font_description_from_string (font);
@@ -6361,6 +6363,9 @@ ev_window_popup_cmd_annot_properties (GSimpleAction *action,
                 annot_ftext = EV_ANNOTATION_FREE_TEXT (annot);
                 if (ev_annotation_free_text_set_font_size (annot_ftext, font_size))
                         mask |= EV_ANNOTATIONS_SAVE_FONT;
+
+                if (ev_annotation_free_text_set_quadding (annot_ftext, quadding))
+                        mask |= EV_ANNOTATIONS_SAVE_QUADDING;
         }
 
 	if (mask != EV_ANNOTATIONS_SAVE_NONE) {
