@@ -3182,24 +3182,43 @@ ev_view_handle_annotation (EvView       *view,
 		ev_view_annotation_show_popup_window (view, window);
 	}
 
-	if (EV_IS_ANNOTATION_ATTACHMENT (annot)) {
-		EvAttachment *attachment;
+        switch (ev_annotation_get_annotation_type (annot)) {
 
-		attachment = ev_annotation_attachment_get_attachment (EV_ANNOTATION_ATTACHMENT (annot));
-		if (attachment) {
-			GError *error = NULL;
+                case EV_ANNOTATION_TYPE_FREE_TEXT: {
+                        EvMapping       *mapping;
+                        GtkWidget       *text_widget;
+                        gint             page;
 
-			ev_attachment_open (attachment,
-					    gtk_widget_get_screen (GTK_WIDGET (view)),
-					    timestamp,
-					    &error);
+                        text_widget = ev_view_annotation_free_text_create_widget (view, annot);
 
-			if (error) {
-				g_warning ("%s", error->message);
-				g_error_free (error);
-			}
-		}
-	}
+                        mapping = get_annotation_mapping_at_location (view, x, y, &page);
+                        ev_view_put_to_doc_rect (view, text_widget, page, &mapping->area);
+                        gtk_widget_show (text_widget);
+                        gtk_widget_grab_focus (text_widget);
+                }
+                break;
+
+                case EV_ANNOTATION_TYPE_ATTACHMENT: {
+		        EvAttachment *attachment;
+
+		        attachment = ev_annotation_attachment_get_attachment (EV_ANNOTATION_ATTACHMENT (annot));
+		        if (attachment) {
+                                GError *error = NULL;
+
+                                ev_attachment_open (attachment,
+                                                    gtk_widget_get_screen (GTK_WIDGET (view)),
+                                                    timestamp,
+                                                    &error);
+
+                                if (error) {
+                                        g_warning ("%s", error->message);
+                                        g_error_free (error);
+                                }
+		        }
+	        }
+                break;
+                default:;
+        }
 }
 
 static void
