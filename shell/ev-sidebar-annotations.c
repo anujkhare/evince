@@ -55,6 +55,7 @@ struct _EvSidebarAnnotationsPrivate {
 	GtkWidget   *tree_view;
 	GtkWidget   *palette;
 	GtkToolItem *annot_text_item;
+	GtkToolItem *annot_free_text_item;
 
 	EvJob       *job;
 	guint        selection_changed_id;
@@ -177,7 +178,10 @@ ev_sidebar_annotations_text_annot_button_toggled (GtkToggleToolButton  *toolbutt
 
 	if (GTK_TOOL_ITEM (toolbutton) == sidebar_annots->priv->annot_text_item)
 		annot_type = EV_ANNOTATION_TYPE_TEXT;
-	else
+	else if (GTK_TOOL_ITEM (toolbutton) == sidebar_annots->priv->annot_free_text_item) {
+                annot_type = EV_ANNOTATION_TYPE_FREE_TEXT;
+        }
+        else
 		annot_type = EV_ANNOTATION_TYPE_UNKNOWN;
 
 	g_signal_emit (sidebar_annots, signals[BEGIN_ANNOT_ADD], 0, annot_type);
@@ -205,6 +209,18 @@ ev_sidebar_annotations_add_annots_palette (EvSidebarAnnotations *ev_annots)
 	gtk_tool_button_set_label (GTK_TOOL_BUTTON (item), _("Text"));
 	gtk_widget_set_tooltip_text (GTK_WIDGET (item), _("Add text annotation"));
 	ev_annots->priv->annot_text_item = item;
+	g_signal_connect (item, "toggled",
+			  G_CALLBACK (ev_sidebar_annotations_text_annot_button_toggled),
+			  ev_annots);
+	gtk_tool_item_group_insert (GTK_TOOL_ITEM_GROUP (group), item, -1);
+	gtk_widget_show (GTK_WIDGET (item));
+
+        // FIXME: maybe restructure code to use loops and arrays..
+	item = gtk_toggle_tool_button_new ();
+	gtk_tool_button_set_icon_name (GTK_TOOL_BUTTON (item), GTK_STOCK_EDIT);
+	gtk_tool_button_set_label (GTK_TOOL_BUTTON (item), _("FreeText"));
+	gtk_widget_set_tooltip_text (GTK_WIDGET (item), _("Add free text annotation"));
+	ev_annots->priv->annot_free_text_item = item;
 	g_signal_connect (item, "toggled",
 			  G_CALLBACK (ev_sidebar_annotations_text_annot_button_toggled),
 			  ev_annots);
@@ -311,7 +327,7 @@ ev_sidebar_annotations_annot_added (EvSidebarAnnotations *sidebar_annots,
 {
 	GtkToggleToolButton *toolbutton;
 
-	if (EV_IS_ANNOTATION_TEXT (annot)) {
+	if (EV_IS_ANNOTATION (annot)) {
 		toolbutton = GTK_TOGGLE_TOOL_BUTTON (sidebar_annots->priv->annot_text_item);
 		g_signal_handlers_block_by_func (toolbutton,
 						 ev_sidebar_annotations_text_annot_button_toggled,
