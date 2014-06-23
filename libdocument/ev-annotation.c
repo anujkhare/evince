@@ -56,6 +56,18 @@ struct _EvAnnotationTextClass {
 	EvAnnotationClass parent_class;
 };
 
+struct _EvAnnotationFreeText {
+	EvAnnotation parent;
+
+        gchar                        *font_name;
+        gdouble                       font_size;
+        EvAnnotationFreeTextQuadding  quadding;
+};
+
+struct _EvAnnotationFreeTextClass {
+	EvAnnotationClass parent_class;
+};
+
 struct _EvAnnotationAttachment {
 	EvAnnotation parent;
 
@@ -68,6 +80,7 @@ struct _EvAnnotationAttachmentClass {
 
 static void ev_annotation_markup_default_init          (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_text_markup_iface_init       (EvAnnotationMarkupInterface *iface);
+static void ev_annotation_free_text_markup_iface_init  (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_attachment_markup_iface_init (EvAnnotationMarkupInterface *iface);
 
 /* EvAnnotation */
@@ -97,6 +110,13 @@ enum {
 	PROP_TEXT_IS_OPEN
 };
 
+/* EvAnnotationFreeText */
+enum {
+        PROP_FREE_TEXT_FONT_NAME = PROP_MARKUP_POPUP_IS_OPEN + 1,
+        PROP_FREE_TEXT_FONT_SIZE,
+        PROP_FREE_TEXT_QUADDING
+};
+
 /* EvAnnotationAttachment */
 enum {
 	PROP_ATTACHMENT_ATTACHMENT = PROP_MARKUP_POPUP_IS_OPEN + 1
@@ -108,6 +128,11 @@ G_DEFINE_TYPE_WITH_CODE (EvAnnotationText, ev_annotation_text, EV_TYPE_ANNOTATIO
 	 {
 		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
 					ev_annotation_text_markup_iface_init);
+	 });
+G_DEFINE_TYPE_WITH_CODE (EvAnnotationFreeText, ev_annotation_free_text, EV_TYPE_ANNOTATION,
+	 {
+		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
+					ev_annotation_free_text_markup_iface_init);
 	 });
 G_DEFINE_TYPE_WITH_CODE (EvAnnotationAttachment, ev_annotation_attachment, EV_TYPE_ANNOTATION,
 	 {
@@ -1094,6 +1119,210 @@ ev_annotation_text_set_is_open (EvAnnotationText *text,
 	g_object_notify (G_OBJECT (text), "is_open");
 
 	return TRUE;
+}
+
+/* EvAnnotationFreeText */
+static void
+ev_annotation_free_text_init (EvAnnotationFreeText *annot)
+{
+	EV_ANNOTATION (annot)->type = EV_ANNOTATION_TYPE_FREE_TEXT;
+}
+
+static void
+ev_annotation_free_text_finalize (GObject *object)
+{
+        EvAnnotationFreeText *annot = EV_ANNOTATION_FREE_TEXT (object);
+
+        if (annot->font_name) {
+                g_free (annot->font_name);
+                annot->font_name = NULL;
+        }
+
+        G_OBJECT_CLASS (ev_annotation_free_text_parent_class)->finalize (object);
+}
+
+static void
+ev_annotation_free_text_set_property (GObject      *object,
+				      guint         prop_id,
+				      const GValue *value,
+				      GParamSpec   *pspec)
+{
+        EvAnnotationFreeText *annot = EV_ANNOTATION_FREE_TEXT (object);
+
+        if (prop_id < PROP_FREE_TEXT_FONT_NAME) {
+                ev_annotation_markup_set_property (object, prop_id, value, pspec);
+                return;
+        }
+
+        switch (prop_id) {
+        case PROP_FREE_TEXT_FONT_NAME:
+                ev_annotation_free_text_set_font_name (annot, g_value_get_string (value));
+                break;
+        case PROP_FREE_TEXT_FONT_SIZE:
+                ev_annotation_free_text_set_font_size (annot, g_value_get_double (value));
+                break;
+        case PROP_FREE_TEXT_QUADDING:
+                ev_annotation_free_text_set_quadding (annot, g_value_get_enum (value));
+                break;
+        default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        }
+}
+
+static void
+ev_annotation_free_text_get_property (GObject    *object,
+				 guint       prop_id,
+				 GValue     *value,
+				 GParamSpec *pspec)
+{
+	EvAnnotationFreeText *annot = EV_ANNOTATION_FREE_TEXT (object);
+
+	if (prop_id < PROP_FREE_TEXT_FONT_NAME) {
+		ev_annotation_markup_get_property (object, prop_id, value, pspec);
+		return;
+	}
+
+	switch (prop_id) {
+	case PROP_FREE_TEXT_FONT_NAME:
+		g_value_set_string (value, annot->font_name);
+		break;
+	case PROP_FREE_TEXT_FONT_SIZE:
+		g_value_set_double (value, annot->font_size);
+		break;
+	case PROP_FREE_TEXT_QUADDING:
+		g_value_set_enum (value, annot->quadding);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+ev_annotation_free_text_class_init (EvAnnotationFreeTextClass *klass)
+{
+	GObjectClass *g_object_class = G_OBJECT_CLASS (klass);
+
+	ev_annotation_markup_class_install_properties (g_object_class);
+
+	g_object_class->set_property = ev_annotation_free_text_set_property;
+	g_object_class->get_property = ev_annotation_free_text_get_property;
+        g_object_class->finalize     = ev_annotation_free_text_finalize;
+
+	g_object_class_install_property (g_object_class,
+					 PROP_FREE_TEXT_FONT_NAME,
+					 g_param_spec_string ("font-name",
+							      "FontName",
+							      "The text font name of the free text annotation",
+                                                              NULL,
+							      G_PARAM_CONSTRUCT |
+							      G_PARAM_READWRITE |
+                                                              G_PARAM_STATIC_STRINGS));
+
+	g_object_class_install_property (g_object_class,
+					 PROP_FREE_TEXT_FONT_SIZE,
+					 g_param_spec_double  ("font-size",
+							       "FontSize",
+							       "The text font size of the free text annotation",
+                                                               0, 100, 12.0,
+							       G_PARAM_CONSTRUCT |
+							       G_PARAM_READWRITE
+                                                               ));
+
+	g_object_class_install_property (g_object_class,
+					 PROP_FREE_TEXT_QUADDING,
+					 g_param_spec_enum ("quadding",
+							    "Quadding",
+							    "The text quadding of the free text annotation",
+                                                            EV_TYPE_ANNOTATION_FREE_TEXT_QUADDING,
+                                                            EV_ANNOTATION_FREE_TEXT_QUADDING_LEFT,
+							    G_PARAM_CONSTRUCT |
+							    G_PARAM_READWRITE
+                                                            ));
+}
+
+static void
+ev_annotation_free_text_markup_iface_init (EvAnnotationMarkupInterface *iface)
+{
+}
+
+EvAnnotation *
+ev_annotation_free_text_new (EvPage *page)
+{
+	return EV_ANNOTATION (g_object_new (EV_TYPE_ANNOTATION_FREE_TEXT,
+					    "page", page,
+                                            "has-popup", FALSE,
+					    NULL));
+}
+
+const gchar *
+ev_annotation_free_text_get_font_name (EvAnnotationFreeText *annot)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), NULL);
+
+        return annot->font_name;
+}
+
+gboolean
+ev_annotation_free_text_set_font_name (EvAnnotationFreeText   *annot,
+                                       const gchar            *font_name)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), FALSE);
+
+        if (annot->font_name) {
+                g_free (annot->font_name);
+                annot->font_name = NULL;
+        }
+
+        annot->font_name = font_name ? g_strdup (font_name) : NULL;
+
+        g_object_notify (G_OBJECT (annot), "font_name");
+        return TRUE;
+}
+
+gdouble
+ev_annotation_free_text_get_font_size (EvAnnotationFreeText *annot)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), 0);
+
+        return annot->font_size;
+}
+
+gboolean
+ev_annotation_free_text_set_font_size (EvAnnotationFreeText   *annot,
+                                       gdouble                 font_size)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), FALSE);
+
+        if (font_size == annot->font_size)
+                return FALSE;
+
+        annot->font_size = font_size;
+
+        g_object_notify (G_OBJECT (annot), "font_size");
+        return TRUE;
+}
+
+EvAnnotationFreeTextQuadding
+ev_annotation_free_text_get_quadding (EvAnnotationFreeText *annot)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), 0);
+
+        return annot->quadding;
+}
+
+gboolean
+ev_annotation_free_text_set_quadding (EvAnnotationFreeText         *annot,
+                                      EvAnnotationFreeTextQuadding quadding)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), FALSE);
+
+        if (annot->quadding == quadding)
+                return FALSE;
+
+        annot->quadding = quadding;
+
+        g_object_notify (G_OBJECT (annot), "quadding");
+        return TRUE;
 }
 
 /* EvAnnotationAttachment */

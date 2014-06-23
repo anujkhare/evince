@@ -44,6 +44,10 @@ struct _EvAnnotationPropertiesDialog {
 
 	/* Text Annotations */
 	GtkWidget       *icon;
+
+        /* FreeText Annotations */
+        GtkWidget       *font;
+        GtkWidget       *quadding;
 };
 
 struct _EvAnnotationPropertiesDialogClass {
@@ -112,9 +116,35 @@ ev_annotation_properties_dialog_constructed (GObject *object)
                 gtk_widget_set_hexpand (dialog->icon, TRUE);
 		gtk_widget_show (dialog->icon);
 
-		break;
 	case EV_ANNOTATION_TYPE_ATTACHMENT:
 		/* TODO */
+		break;
+        case EV_ANNOTATION_TYPE_FREE_TEXT:
+                /* Font button */
+		label = gtk_label_new (_("Font:"));
+		gtk_misc_set_alignment (GTK_MISC (label), 0., 0.5);
+		gtk_grid_attach (GTK_GRID (grid), label, 0, 5, 1, 1);
+		gtk_widget_show (label);
+
+		dialog->font = gtk_font_button_new ();
+		gtk_grid_attach (GTK_GRID (grid), dialog->font, 1, 5, 1, 1);
+                gtk_widget_show (dialog->font);
+
+                /* Quadding combo box */
+                label = gtk_label_new (_("Quadding:"));
+		gtk_misc_set_alignment (GTK_MISC (label), 0., 0.5);
+		gtk_grid_attach (GTK_GRID (grid), label, 0, 6, 1, 1);
+		gtk_widget_show (label);
+
+		dialog->quadding = gtk_combo_box_text_new ();
+		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (dialog->quadding), _("Left Justified"));
+		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (dialog->quadding), _("Center Justified"));
+		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (dialog->quadding), _("Right Justified"));
+		gtk_combo_box_set_active (GTK_COMBO_BOX (dialog->quadding), 0);
+		gtk_grid_attach (GTK_GRID (grid), dialog->quadding, 1, 6, 1, 1);
+                gtk_widget_set_hexpand (dialog->quadding, TRUE);
+                gtk_widget_show (dialog->quadding);
+		break;
 	default:
 		break;
 	}
@@ -279,6 +309,22 @@ ev_annotation_properties_dialog_new_with_annotation (EvAnnotation *annot)
 					  ev_annotation_text_get_icon (annot_text));
 	}
 
+        if (EV_IS_ANNOTATION_FREE_TEXT (annot)) {
+                EvAnnotationFreeText *ftext = EV_ANNOTATION_FREE_TEXT (annot);
+                PangoFontDescription *pango_font;
+                gchar *font;
+
+                pango_font = pango_font_description_new ();
+                pango_font_description_set_size (pango_font,
+                                                 PANGO_SCALE * ev_annotation_free_text_get_font_size (ftext));
+                font = pango_font_description_to_string (pango_font);
+
+                gtk_font_button_set_font_name (GTK_FONT_BUTTON (dialog->font), font);
+                gtk_combo_box_set_active (GTK_COMBO_BOX (dialog->quadding),
+                                          ev_annotation_free_text_get_quadding (ftext));
+                g_free (font);
+        }
+
 	return GTK_WIDGET (dialog);
 }
 
@@ -311,4 +357,16 @@ EvAnnotationTextIcon
 ev_annotation_properties_dialog_get_text_icon (EvAnnotationPropertiesDialog *dialog)
 {
 	return gtk_combo_box_get_active (GTK_COMBO_BOX (dialog->icon));
+}
+
+const gchar*
+ev_annotation_properties_dialog_get_font (EvAnnotationPropertiesDialog *dialog)
+{
+        return gtk_font_button_get_font_name (GTK_FONT_BUTTON (dialog->font));
+}
+
+EvAnnotationFreeTextQuadding
+ev_annotation_properties_dialog_get_quadding (EvAnnotationPropertiesDialog *dialog)
+{
+        return gtk_combo_box_get_active (GTK_COMBO_BOX (dialog->quadding));
 }

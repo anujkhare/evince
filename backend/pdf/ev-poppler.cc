@@ -2842,6 +2842,21 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			ev_annotation_text_set_icon (ev_annot_text, get_annot_text_icon (poppler_text));
 		}
 			break;
+	        case POPPLER_ANNOT_FREE_TEXT: {
+			PopplerAnnotFreeText *poppler_ftext;
+                        EvAnnotationFreeText *ev_ftext;
+
+                        poppler_ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
+
+			ev_annot = ev_annotation_free_text_new (page);
+
+                        ev_ftext = EV_ANNOTATION_FREE_TEXT (ev_annot);
+                        ev_annotation_free_text_set_font_size (ev_ftext,
+                                                               poppler_annot_free_text_get_font_size (poppler_ftext));
+                        ev_annotation_free_text_set_quadding (ev_ftext,
+                                                              (EvAnnotationFreeTextQuadding)poppler_annot_free_text_get_quadding (poppler_ftext));
+		}
+			break;
 	        case POPPLER_ANNOT_FILE_ATTACHMENT: {
 			PopplerAnnotFileAttachment *poppler_annot_attachment;
 			PopplerAttachment          *poppler_attachment;
@@ -2878,7 +2893,6 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			break;
 		case POPPLER_ANNOT_3D:
 		case POPPLER_ANNOT_CARET:
-		case POPPLER_ANNOT_FREE_TEXT:
 		case POPPLER_ANNOT_HIGHLIGHT:
 		case POPPLER_ANNOT_LINE:
 		case POPPLER_ANNOT_SCREEN:
@@ -3117,8 +3131,34 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 	poppler_rect.x2 = rect->x2;
 	poppler_rect.y1 = height - rect->y2;
 	poppler_rect.y2 = height - rect->y1;
-	poppler_annot = poppler_annot_text_new (pdf_document->document, &poppler_rect);
 
+        switch (ev_annotation_get_annotation_type (annot)) {
+                case EV_ANNOTATION_TYPE_TEXT: {
+		        EvAnnotationText    *text = EV_ANNOTATION_TEXT (annot);
+		        EvAnnotationTextIcon icon;
+
+	                poppler_annot = poppler_annot_text_new (pdf_document->document, &poppler_rect);
+
+		        icon = ev_annotation_text_get_icon (text);
+		        poppler_annot_text_set_icon (POPPLER_ANNOT_TEXT (poppler_annot),
+                                                     get_poppler_annot_text_icon (icon));
+	        }
+                        break;
+
+                case EV_ANNOTATION_TYPE_FREE_TEXT: {
+                        EvAnnotationFreeText *ftext = EV_ANNOTATION_FREE_TEXT (annot);
+
+                        poppler_annot = poppler_annot_free_text_new (pdf_document->document, &poppler_rect);
+                }
+                        break;
+
+                default: {
+                        poppler_annot = NULL;
+                }
+        }
+
+        if (!poppler_annot)
+                return;
 	ev_annotation_get_color (annot, &color);
 	poppler_color.red = color.red;
 	poppler_color.green = color.green;
@@ -3147,14 +3187,6 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 			poppler_annot_markup_set_label (POPPLER_ANNOT_MARKUP (poppler_annot), label);
 	}
 
-	if (EV_IS_ANNOTATION_TEXT (annot)) {
-		EvAnnotationText    *text = EV_ANNOTATION_TEXT (annot);
-		EvAnnotationTextIcon icon;
-
-		icon = ev_annotation_text_get_icon (text);
-		poppler_annot_text_set_icon (POPPLER_ANNOT_TEXT (poppler_annot),
-					     get_poppler_annot_text_icon (icon));
-	}
 	poppler_page_add_annot (poppler_page, poppler_annot);
 
 	annot_mapping = g_new (EvMapping, 1);
@@ -3249,6 +3281,21 @@ pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annota
 			poppler_annot_text_set_icon (text, get_poppler_annot_text_icon (icon));
 		}
 	}
+
+        if (EV_IS_ANNOTATION_FREE_TEXT (annot)) {
+                EvAnnotationFreeText *ev_ftext = EV_ANNOTATION_FREE_TEXT (annot);
+                PopplerAnnotFreeText *ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
+
+                if (mask & EV_ANNOTATIONS_SAVE_FONT) {
+                        poppler_annot_free_text_set_font_size (ftext,
+                                                               ev_annotation_free_text_get_font_size (ev_ftext));
+                }
+
+                if (mask & EV_ANNOTATIONS_SAVE_QUADDING) {
+                        poppler_annot_free_text_set_quadding (ftext,
+                                                              (PopplerAnnotFreeTextQuadding) ev_annotation_free_text_get_quadding (ev_ftext));
+                }
+        }
 
 	PDF_DOCUMENT (document_annotations)->annots_modified = TRUE;
 }
