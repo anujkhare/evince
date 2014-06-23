@@ -4575,6 +4575,8 @@ ev_view_query_tooltip (GtkWidget  *widget,
 
 	annot = ev_view_get_annotation_at_location (view, x, y);
 	if (annot) {
+                if (ev_annotation_get_annotation_type (annot) == EV_ANNOTATION_TYPE_FREE_TEXT)          //FreeText annotations have no tooltip
+                        return FALSE;
 		const gchar *contents;
 
 		if ((contents = ev_annotation_get_contents (annot))) {
