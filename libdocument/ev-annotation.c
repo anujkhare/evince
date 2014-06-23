@@ -1061,6 +1061,7 @@ ev_annotation_text_new (EvPage *page)
 {
 	return EV_ANNOTATION (g_object_new (EV_TYPE_ANNOTATION_TEXT,
 					    "page", page,
+                                            "has-popup", TRUE,
 					    NULL));
 }
 
