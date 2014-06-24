@@ -62,6 +62,7 @@ struct _EvAnnotationFreeText {
         gchar                        *font_name;
         gdouble                       font_size;
         EvAnnotationFreeTextQuadding  quadding;
+        EvAnnotationFreeTextIntent    intent;
 };
 
 struct _EvAnnotationFreeTextClass {
@@ -114,6 +115,7 @@ enum {
 enum {
         PROP_FREE_TEXT_FONT_NAME = PROP_MARKUP_POPUP_IS_OPEN + 1,
         PROP_FREE_TEXT_FONT_SIZE,
+        PROP_FREE_TEXT_INTENT,
         PROP_FREE_TEXT_QUADDING
 };
 
@@ -1164,6 +1166,9 @@ ev_annotation_free_text_set_property (GObject      *object,
         case PROP_FREE_TEXT_QUADDING:
                 ev_annotation_free_text_set_quadding (annot, g_value_get_enum (value));
                 break;
+        case PROP_FREE_TEXT_INTENT:
+                ev_annotation_free_text_set_intent (annot, g_value_get_enum (value));
+                break;
         default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
         }
@@ -1191,6 +1196,9 @@ ev_annotation_free_text_get_property (GObject    *object,
 		break;
 	case PROP_FREE_TEXT_QUADDING:
 		g_value_set_enum (value, annot->quadding);
+		break;
+	case PROP_FREE_TEXT_INTENT:
+		g_value_set_enum (value, annot->intent);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1235,6 +1243,16 @@ ev_annotation_free_text_class_init (EvAnnotationFreeTextClass *klass)
 							    "The text quadding of the free text annotation",
                                                             EV_TYPE_ANNOTATION_FREE_TEXT_QUADDING,
                                                             EV_ANNOTATION_FREE_TEXT_QUADDING_LEFT,
+							    G_PARAM_CONSTRUCT |
+							    G_PARAM_READWRITE
+                                                            ));
+	g_object_class_install_property (g_object_class,
+					 PROP_FREE_TEXT_INTENT,
+					 g_param_spec_enum ("intent",
+							    "Intent",
+							    "The intent of the free text annotation",
+                                                            EV_TYPE_ANNOTATION_FREE_TEXT_INTENT,
+                                                            EV_ANNOTATION_FREE_TEXT_INTENT_FREE_TEXT,
 							    G_PARAM_CONSTRUCT |
 							    G_PARAM_READWRITE
                                                             ));
@@ -1325,6 +1343,28 @@ ev_annotation_free_text_set_quadding (EvAnnotationFreeText         *annot,
         return TRUE;
 }
 
+EvAnnotationFreeTextIntent
+ev_annotation_free_text_get_intent (EvAnnotationFreeText *annot)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), 0);
+
+        return annot->intent;
+}
+
+gboolean
+ev_annotation_free_text_set_intent (EvAnnotationFreeText         *annot,
+                                    EvAnnotationFreeTextIntent    intent)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), FALSE);
+
+        if (annot->intent == intent)
+                return FALSE;
+
+        annot->intent = intent;
+
+        g_object_notify (G_OBJECT (annot), "intent");
+        return TRUE;
+}
 /* EvAnnotationAttachment */
 static void
 ev_annotation_attachment_finalize (GObject *object)
