@@ -117,6 +117,12 @@ typedef enum {
         EV_ANNOTATION_FREE_TEXT_QUADDING_CENTER
 } EvAnnotationFreeTextQuadding;
 
+typedef enum {
+  EV_ANNOTATION_FREE_TEXT_INTENT_FREE_TEXT,
+  EV_ANNOTATION_FREE_TEXT_INTENT_CALLOUT,
+  EV_ANNOTATION_FREE_TEXT_INTENT_TYPE_WRITER
+} EvAnnotationFreeTextIntent;
+
 struct _EvAnnotationCalloutLine {
         gboolean multiline;
         gdouble x1;
@@ -196,7 +202,10 @@ gboolean             ev_annotation_free_text_set_font_size   (EvAnnotationFreeTe
                                                               gdouble                 font_size);
 gboolean             ev_annotation_free_text_set_quadding    (EvAnnotationFreeText   *annot,
                                                               EvAnnotationFreeTextQuadding quadding);
-EvAnnotationFreeTextQuadding ev_annotation_free_text_get_quadding (EvAnnotationFreeText   *annot);
+EvAnnotationFreeTextQuadding ev_annotation_free_text_get_quadding (EvAnnotationFreeText      *annot);
+EvAnnotationFreeTextIntent   ev_annotation_free_text_get_intent   (EvAnnotationFreeText      *annot);
+gboolean                     ev_annotation_free_text_set_intent   (EvAnnotationFreeText      *annot,
+                                                                   EvAnnotationFreeTextIntent intent);
 
 /* EvAnnotationAttachment */
 GType                ev_annotation_attachment_get_type       (void) G_GNUC_CONST;
