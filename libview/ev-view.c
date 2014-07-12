@@ -3265,6 +3265,24 @@ ev_view_create_annotation (EvView          *view,
 	case EV_ANNOTATION_TYPE_FREE_TEXT:
 		annot = ev_annotation_free_text_new (page);
 		break;
+	case EV_ANNOTATION_TYPE_CIRCLE: {
+                GdkRGBA interior_rgba;
+
+		annot = ev_annotation_circle_new (page);
+
+                interior_rgba.alpha = 0.;
+                ev_annotation_circle_set_interior_rgba (EV_ANNOTATION_CIRCLE (annot), &interior_rgba);
+        }
+		break;
+	case EV_ANNOTATION_TYPE_SQUARE: {
+                GdkRGBA interior_rgba;
+
+		annot = ev_annotation_square_new (page);
+
+                interior_rgba.alpha = 0.;
+                ev_annotation_circle_set_interior_rgba (EV_ANNOTATION_CIRCLE (annot), &interior_rgba);
+        }
+		break;
 	case EV_ANNOTATION_TYPE_ATTACHMENT:
 		/* TODO */
 		g_object_unref (page);
