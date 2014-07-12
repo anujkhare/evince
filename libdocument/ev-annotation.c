@@ -69,6 +69,26 @@ struct _EvAnnotationFreeTextClass {
 	EvAnnotationClass parent_class;
 };
 
+struct _EvAnnotationCircle {
+	EvAnnotation parent;
+
+	GdkRGBA      interior_rgba;
+};
+
+struct _EvAnnotationCircleClass {
+	EvAnnotationClass parent_class;
+};
+
+struct _EvAnnotationSquare {
+	EvAnnotation parent;
+
+	GdkRGBA      interior_rgba;
+};
+
+struct _EvAnnotationSquareClass {
+	EvAnnotationClass parent_class;
+};
+
 struct _EvAnnotationAttachment {
 	EvAnnotation parent;
 
@@ -82,6 +102,8 @@ struct _EvAnnotationAttachmentClass {
 static void ev_annotation_markup_default_init          (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_text_markup_iface_init       (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_free_text_markup_iface_init  (EvAnnotationMarkupInterface *iface);
+static void ev_annotation_circle_markup_iface_init     (EvAnnotationMarkupInterface *iface);
+static void ev_annotation_square_markup_iface_init     (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_attachment_markup_iface_init (EvAnnotationMarkupInterface *iface);
 
 /* EvAnnotation */
@@ -119,6 +141,16 @@ enum {
         PROP_FREE_TEXT_QUADDING
 };
 
+/* EvAnnotationCircle */
+enum {
+	PROP_CIRCLE_INTERIOR_RGBA = PROP_MARKUP_POPUP_IS_OPEN + 1
+};
+
+/* EvAnnotationSquare */
+enum {
+	PROP_SQUARE_INTERIOR_RGBA = PROP_MARKUP_POPUP_IS_OPEN + 1
+};
+
 /* EvAnnotationAttachment */
 enum {
 	PROP_ATTACHMENT_ATTACHMENT = PROP_MARKUP_POPUP_IS_OPEN + 1
@@ -135,6 +167,16 @@ G_DEFINE_TYPE_WITH_CODE (EvAnnotationFreeText, ev_annotation_free_text, EV_TYPE_
 	 {
 		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
 					ev_annotation_free_text_markup_iface_init);
+	 });
+G_DEFINE_TYPE_WITH_CODE (EvAnnotationCircle, ev_annotation_circle, EV_TYPE_ANNOTATION,
+	 {
+		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
+					ev_annotation_circle_markup_iface_init);
+	 });
+G_DEFINE_TYPE_WITH_CODE (EvAnnotationSquare, ev_annotation_square, EV_TYPE_ANNOTATION,
+	 {
+		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
+					ev_annotation_square_markup_iface_init);
 	 });
 G_DEFINE_TYPE_WITH_CODE (EvAnnotationAttachment, ev_annotation_attachment, EV_TYPE_ANNOTATION,
 	 {
@@ -1366,6 +1408,223 @@ ev_annotation_free_text_set_intent (EvAnnotationFreeText         *annot,
         g_object_notify (G_OBJECT (annot), "intent");
         return TRUE;
 }
+
+/* EvAnnotationCircle */
+static void
+ev_annotation_circle_init (EvAnnotationCircle *annot)
+{
+	EV_ANNOTATION (annot)->type = EV_ANNOTATION_TYPE_CIRCLE;
+}
+
+static void
+ev_annotation_circle_set_property (GObject      *object,
+    				   guint         prop_id,
+    				   const GValue *value,
+    				   GParamSpec   *pspec)
+{
+	EvAnnotationCircle *annot = EV_ANNOTATION_CIRCLE (object);
+
+	if (prop_id < PROP_CIRCLE_INTERIOR_RGBA) {
+		ev_annotation_markup_set_property (object, prop_id, value, pspec);
+		return;
+	}
+
+	switch (prop_id) {
+        case PROP_ANNOT_RGBA:
+                ev_annotation_circle_set_interior_rgba (annot, g_value_get_boxed (value));
+                break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+ev_annotation_circle_get_property (GObject    *object,
+				   guint       prop_id,
+				   GValue     *value,
+				   GParamSpec *pspec)
+{
+	EvAnnotationCircle *annot = EV_ANNOTATION_CIRCLE (object);
+
+	if (prop_id < PROP_CIRCLE_INTERIOR_RGBA) {
+		ev_annotation_markup_get_property (object, prop_id, value, pspec);
+		return;
+	}
+
+	switch (prop_id) {
+        case PROP_ANNOT_RGBA:
+                g_value_set_boxed (value, &annot->interior_rgba);
+                break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+ev_annotation_circle_class_init (EvAnnotationCircleClass *klass)
+{
+	GObjectClass *g_object_class = G_OBJECT_CLASS (klass);
+
+	ev_annotation_markup_class_install_properties (g_object_class);
+
+	g_object_class->set_property = ev_annotation_circle_set_property;
+	g_object_class->get_property = ev_annotation_circle_get_property;
+
+        g_object_class_install_property (g_object_class,
+                                         PROP_CIRCLE_INTERIOR_RGBA,
+                                         g_param_spec_boxed ("interior-rgba", NULL, NULL,
+                                                             GDK_TYPE_RGBA,
+                                                             G_PARAM_READWRITE |
+                                                             G_PARAM_STATIC_STRINGS));
+}
+
+static void
+ev_annotation_circle_markup_iface_init (EvAnnotationMarkupInterface *iface)
+{
+}
+
+EvAnnotation *
+ev_annotation_circle_new (EvPage *page)
+{
+	return EV_ANNOTATION (g_object_new (EV_TYPE_ANNOTATION_CIRCLE,
+					    "page", page,
+					    NULL));
+}
+
+void
+ev_annotation_circle_get_interior_rgba (EvAnnotationCircle *annot,
+                                        GdkRGBA            *rgba)
+{
+        g_return_if_fail (EV_IS_ANNOTATION_CIRCLE (annot));
+        g_return_if_fail (rgba != NULL);
+
+        *rgba = annot->interior_rgba;
+}
+
+gboolean
+ev_annotation_circle_set_interior_rgba (EvAnnotationCircle *annot,
+                                        const GdkRGBA      *rgba)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_CIRCLE (annot), FALSE);
+        g_return_val_if_fail (rgba != NULL, FALSE);
+
+        if (gdk_rgba_equal (rgba, &annot->interior_rgba))
+                return FALSE;
+
+        annot->interior_rgba = *rgba;
+        g_object_notify (G_OBJECT (annot), "interior-rgba");
+
+        return TRUE;
+}
+
+/* EvAnnotationSquare */
+static void
+ev_annotation_square_init (EvAnnotationSquare *annot)
+{
+	EV_ANNOTATION (annot)->type = EV_ANNOTATION_TYPE_SQUARE;
+}
+
+static void
+ev_annotation_square_set_property (GObject      *object,
+    				   guint         prop_id,
+    				   const GValue *value,
+    				   GParamSpec   *pspec)
+{
+	EvAnnotationSquare *annot = EV_ANNOTATION_SQUARE (object);
+
+	if (prop_id < PROP_SQUARE_INTERIOR_RGBA) {
+		ev_annotation_markup_set_property (object, prop_id, value, pspec);
+		return;
+	}
+
+	switch (prop_id) {
+        case PROP_ANNOT_RGBA:
+                ev_annotation_square_set_interior_rgba (annot, g_value_get_boxed (value));
+                break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+ev_annotation_square_get_property (GObject    *object,
+				   guint       prop_id,
+				   GValue     *value,
+				   GParamSpec *pspec)
+{
+	EvAnnotationSquare *annot = EV_ANNOTATION_SQUARE (object);
+
+	if (prop_id < PROP_SQUARE_INTERIOR_RGBA) {
+		ev_annotation_markup_get_property (object, prop_id, value, pspec);
+		return;
+	}
+
+	switch (prop_id) {
+        case PROP_ANNOT_RGBA:
+                g_value_set_boxed (value, &annot->interior_rgba);
+                break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+ev_annotation_square_class_init (EvAnnotationSquareClass *klass)
+{
+	GObjectClass *g_object_class = G_OBJECT_CLASS (klass);
+
+	ev_annotation_markup_class_install_properties (g_object_class);
+
+	g_object_class->set_property = ev_annotation_square_set_property;
+	g_object_class->get_property = ev_annotation_square_get_property;
+
+        g_object_class_install_property (g_object_class,
+                                         PROP_SQUARE_INTERIOR_RGBA,
+                                         g_param_spec_boxed ("interior-rgba", NULL, NULL,
+                                                             GDK_TYPE_RGBA,
+                                                             G_PARAM_READWRITE |
+                                                             G_PARAM_STATIC_STRINGS));
+}
+
+static void
+ev_annotation_square_markup_iface_init (EvAnnotationMarkupInterface *iface)
+{
+}
+
+EvAnnotation *
+ev_annotation_square_new (EvPage *page)
+{
+	return EV_ANNOTATION (g_object_new (EV_TYPE_ANNOTATION_SQUARE,
+					    "page", page,
+					    NULL));
+}
+
+void
+ev_annotation_square_get_interior_rgba (EvAnnotationSquare *annot,
+                                        GdkRGBA            *rgba)
+{
+        g_return_if_fail (EV_IS_ANNOTATION_SQUARE (annot));
+        g_return_if_fail (rgba != NULL);
+
+        *rgba = annot->interior_rgba;
+}
+
+gboolean
+ev_annotation_square_set_interior_rgba (EvAnnotationSquare *annot,
+                                        const GdkRGBA      *rgba)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_SQUARE (annot), FALSE);
+        g_return_val_if_fail (rgba != NULL, FALSE);
+
+        if (gdk_rgba_equal (rgba, &annot->interior_rgba))
+                return FALSE;
+
+        annot->interior_rgba = *rgba;
+        g_object_notify (G_OBJECT (annot), "interior-rgba");
+
+        return TRUE;
+}
+
 /* EvAnnotationAttachment */
 static void
 ev_annotation_attachment_finalize (GObject *object)
