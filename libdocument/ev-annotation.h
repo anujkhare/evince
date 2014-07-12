@@ -75,6 +75,22 @@ G_BEGIN_DECLS
 #define EV_IS_ANNOTATION_ATTACHMENT_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE((klass), EV_TYPE_ANNOTATION_ATTACHMENT))
 #define EV_ANNOTATION_ATTACHMENT_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS((object), EV_TYPE_ANNOTATION_ATTACHMENT, EvAnnotationAttachmentClass))
 
+/* EvAnnotationCircle */
+#define EV_TYPE_ANNOTATION_CIRCLE                 (ev_annotation_circle_get_type())
+#define EV_ANNOTATION_CIRCLE(object)              (G_TYPE_CHECK_INSTANCE_CAST((object), EV_TYPE_ANNOTATION_CIRCLE, EvAnnotationCircle))
+#define EV_ANNOTATION_CIRCLE_CLASS(klass)         (G_TYPE_CHECK_CLASS_CAST((klass), EV_TYPE_ANNOTATION_CIRCLE, EvAnnotationCircleClass))
+#define EV_IS_ANNOTATION_CIRCLE(object)           (G_TYPE_CHECK_INSTANCE_TYPE((object), EV_TYPE_ANNOTATION_CIRCLE))
+#define EV_IS_ANNOTATION_CIRCLE_CLASS(klass)      (G_TYPE_CHECK_CLASS_TYPE((klass), EV_TYPE_ANNOTATION_CIRCLE))
+#define EV_ANNOTATION_CIRCLE_GET_CLASS(object)    (G_TYPE_INSTANCE_GET_CLASS((object), EV_TYPE_ANNOTATION_CIRCLE, EvAnnotationCircleClass))
+
+/* EvAnnotationSquare */
+#define EV_TYPE_ANNOTATION_SQUARE                 (ev_annotation_square_get_type())
+#define EV_ANNOTATION_SQUARE(object)              (G_TYPE_CHECK_INSTANCE_CAST((object), EV_TYPE_ANNOTATION_SQUARE, EvAnnotationSquare))
+#define EV_ANNOTATION_SQUARE_CLASS(klass)         (G_TYPE_CHECK_CLASS_CAST((klass), EV_TYPE_ANNOTATION_SQUARE, EvAnnotationSquareClass))
+#define EV_IS_ANNOTATION_SQUARE(object)           (G_TYPE_CHECK_INSTANCE_TYPE((object), EV_TYPE_ANNOTATION_SQUARE))
+#define EV_IS_ANNOTATION_SQUARE_CLASS(klass)      (G_TYPE_CHECK_CLASS_TYPE((klass), EV_TYPE_ANNOTATION_SQUARE))
+#define EV_ANNOTATION_SQUARE_GET_CLASS(object)    (G_TYPE_INSTANCE_GET_CLASS((object), EV_TYPE_ANNOTATION_SQUARE, EvAnnotationSquareClass))
+
 typedef struct _EvAnnotation                EvAnnotation;
 typedef struct _EvAnnotationClass           EvAnnotationClass;
 
@@ -88,6 +104,12 @@ typedef struct _EvAnnotationFreeText        EvAnnotationFreeText;
 typedef struct _EvAnnotationFreeTextClass   EvAnnotationFreeTextClass;
 typedef struct _EvAnnotationCalloutLine     EvAnnotationCalloutLine;
 
+typedef struct _EvAnnotationCircle          EvAnnotationCircle;
+typedef struct _EvAnnotationCircleClass     EvAnnotationCircleClass;
+
+typedef struct _EvAnnotationSquare          EvAnnotationSquare;
+typedef struct _EvAnnotationSquareClass     EvAnnotationSquareClass;
+
 typedef struct _EvAnnotationAttachment      EvAnnotationAttachment;
 typedef struct _EvAnnotationAttachmentClass EvAnnotationAttachmentClass;
 
@@ -95,6 +117,8 @@ typedef enum {
 	EV_ANNOTATION_TYPE_UNKNOWN,
 	EV_ANNOTATION_TYPE_TEXT,
         EV_ANNOTATION_TYPE_FREE_TEXT,
+	EV_ANNOTATION_TYPE_CIRCLE,
+	EV_ANNOTATION_TYPE_SQUARE,
 	EV_ANNOTATION_TYPE_ATTACHMENT
 } EvAnnotationType;
 
@@ -206,6 +230,21 @@ EvAnnotationFreeTextQuadding   ev_annotation_free_text_get_quadding    (EvAnnota
 EvAnnotationFreeTextIntent     ev_annotation_free_text_get_intent      (EvAnnotationFreeText      *annot);
 gboolean                       ev_annotation_free_text_set_intent      (EvAnnotationFreeText      *annot,
                                                                         EvAnnotationFreeTextIntent intent);
+                                                                   EvAnnotationFreeTextIntent intent);
+/* EvAnnotationCircle */
+GType                ev_annotation_circle_get_type           (void) G_GNUC_CONST;
+EvAnnotation        *ev_annotation_circle_new                (EvPage                 *page);
+void                 ev_annotation_circle_get_interior_rgba  (EvAnnotationCircle     *annot,
+                                                              GdkRGBA                *rgba);
+gboolean             ev_annotation_circle_set_interior_rgba  (EvAnnotationCircle     *annot,
+                                                              const GdkRGBA          *rgba);
+/* EvAnnotationSquare */
+GType                ev_annotation_square_get_type           (void) G_GNUC_CONST;
+EvAnnotation        *ev_annotation_square_new                (EvPage                 *page);
+void                 ev_annotation_square_get_interior_rgba  (EvAnnotationSquare     *annot,
+                                                              GdkRGBA                *rgba);
+gboolean             ev_annotation_square_set_interior_rgba  (EvAnnotationSquare     *annot,
+                                                              const GdkRGBA          *rgba);
 
 /* EvAnnotationAttachment */
 GType                ev_annotation_attachment_get_type       (void) G_GNUC_CONST;
