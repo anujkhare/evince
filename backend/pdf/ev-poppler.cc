@@ -2829,6 +2829,25 @@ save_poppler_annot_free_text_appearnce (PopplerAnnotFreeText *poppler_annot,
         poppler_annot_free_text_set_annot_appearance (poppler_annot, &appearance);
 }
 
+gdk_rgba_from_poppler_color (PopplerColor *poppler_color,
+                             GdkRGBA      *rgba)
+{
+        g_return_if_fail (rgba != NULL);
+
+        if (poppler_color) {
+                rgba->red   = poppler_color->red / 65535.;
+                rgba->green = poppler_color->green / 65535.;
+                rgba->blue  = poppler_color->blue / 65535.;
+                g_free (poppler_color);
+        } else {
+                /* Default color set to yellow */
+                rgba->red   = 1.;
+                rgba->green = 1.;
+                rgba->blue  = 0.;
+        }
+        rgba->alpha = 1.;
+}
+
 static EvAnnotation *
 ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			     EvPage       *page)
@@ -2870,6 +2889,30 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
                                                               (EvAnnotationFreeTextQuadding)poppler_annot_free_text_get_quadding (poppler_ftext));
 		}
 			break;
+	        case POPPLER_ANNOT_CIRCLE: {
+                        PopplerColor *poppler_color;
+                        GdkRGBA       interior_rgba;
+
+                        ev_annot = ev_annotation_circle_new (page);
+
+                        poppler_color = poppler_annot_circle_get_interior_color (POPPLER_ANNOT_CIRCLE (poppler_annot));
+                        gdk_rgba_from_poppler_color (poppler_color, &interior_rgba);
+                        ev_annotation_circle_set_interior_rgba (EV_ANNOTATION_CIRCLE (ev_annot), &interior_rgba);
+                }
+                        break;
+
+	        case POPPLER_ANNOT_SQUARE: {
+                        PopplerColor *poppler_color;
+                        GdkRGBA       interior_rgba;
+
+                        ev_annot = ev_annotation_square_new (page);
+
+                        poppler_color = poppler_annot_square_get_interior_color (POPPLER_ANNOT_SQUARE (poppler_annot));
+                        gdk_rgba_from_poppler_color (poppler_color, &interior_rgba);
+                        ev_annotation_square_set_interior_rgba (EV_ANNOTATION_SQUARE (ev_annot), &interior_rgba);
+                }
+                        break;
+
 	        case POPPLER_ANNOT_FILE_ATTACHMENT: {
 			PopplerAnnotFileAttachment *poppler_annot_attachment;
 			PopplerAttachment          *poppler_attachment;
@@ -2910,7 +2953,6 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		case POPPLER_ANNOT_LINE:
 		case POPPLER_ANNOT_SCREEN:
 		case POPPLER_ANNOT_SOUND:
-		case POPPLER_ANNOT_SQUARE:
 		case POPPLER_ANNOT_SQUIGGLY:
 		case POPPLER_ANNOT_STAMP:
 		case POPPLER_ANNOT_STRIKE_OUT:
@@ -3118,6 +3160,46 @@ pdf_document_annotations_document_is_modified (EvDocumentAnnotations *document_a
 }
 
 static void
+poppler_color_from_gdk_rgba (GdkRGBA      *rgba,
+                             PopplerColor *poppler_color)
+{
+        g_return_if_fail (poppler_color != NULL);
+        g_return_if_fail (rgba != NULL);
+
+        poppler_color->red   = rgba->red * 65535.;
+        poppler_color->green = rgba->green * 65535.;
+        poppler_color->blue  = rgba->blue * 65535.;
+}
+
+static void
+save_poppler_annot_circle_interior_color (EvAnnotationCircle *annot,
+                                          PopplerAnnotCircle *poppler_annot)
+{
+        PopplerColor *poppler_color;
+        GdkRGBA       interior_color;
+
+        ev_annotation_circle_get_interior_rgba (annot, &interior_color);
+        poppler_color = poppler_color_new ();
+        poppler_color_from_gdk_rgba (&interior_color, poppler_color);
+        poppler_annot_circle_set_interior_color (poppler_annot, poppler_color);
+        poppler_color_free (poppler_color);
+}
+
+static void
+save_poppler_annot_square_interior_color (EvAnnotationSquare *annot,
+                                          PopplerAnnotSquare *poppler_annot)
+{
+        PopplerColor *poppler_color;
+        GdkRGBA       interior_color;
+
+        ev_annotation_square_get_interior_rgba (annot, &interior_color);
+        poppler_color = poppler_color_new ();
+        poppler_color_from_gdk_rgba (&interior_color, poppler_color);
+        poppler_annot_square_set_interior_color (poppler_annot, poppler_color);
+        poppler_color_free (poppler_color);
+}
+
+static void
 pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotations,
 					 EvAnnotation          *annot,
 					 EvRectangle           *rect)
@@ -3163,6 +3245,20 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 
                         poppler_annot = poppler_annot_free_text_new (pdf_document->document, &poppler_rect);
                         save_poppler_annot_free_text_appearnce (POPPLER_ANNOT_FREE_TEXT (poppler_annot), ftext);
+                }
+                        break;
+
+                case EV_ANNOTATION_TYPE_SQUARE: {
+                        poppler_annot = poppler_annot_square_new (pdf_document->document, &poppler_rect);
+                        save_poppler_annot_square_interior_color (EV_ANNOTATION_SQUARE (annot),
+                                                                  POPPLER_ANNOT_SQUARE (poppler_annot));
+                }
+                        break;
+
+                case EV_ANNOTATION_TYPE_CIRCLE: {
+                        poppler_annot = poppler_annot_circle_new (pdf_document->document, &poppler_rect);
+                        save_poppler_annot_circle_interior_color (EV_ANNOTATION_CIRCLE (annot),
+                                                                  POPPLER_ANNOT_CIRCLE (poppler_annot));
                 }
                         break;
 
@@ -3307,6 +3403,24 @@ pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annota
                 if (mask & EV_ANNOTATIONS_SAVE_QUADDING) {
                         poppler_annot_free_text_set_quadding (poppler_ftext,
                                                               (PopplerAnnotFreeTextQuadding) ev_annotation_free_text_get_quadding (ev_ftext));
+                }
+        }
+
+        if (EV_IS_ANNOTATION_CIRCLE (annot)) {
+                EvAnnotationCircle *ev_circle = EV_ANNOTATION_CIRCLE (annot);
+                PopplerAnnotCircle *poppler_circle  = POPPLER_ANNOT_CIRCLE (poppler_annot);
+
+                if (mask & EV_ANNOTATIONS_SAVE_INTERIOR_COLOR) {
+                        save_poppler_annot_circle_interior_color (ev_circle, poppler_circle);
+                }
+        }
+
+        if (EV_IS_ANNOTATION_SQUARE (annot)) {
+                EvAnnotationSquare *ev_square = EV_ANNOTATION_SQUARE (annot);
+                PopplerAnnotSquare *poppler_square  = POPPLER_ANNOT_SQUARE (poppler_annot);
+
+                if (mask & EV_ANNOTATIONS_SAVE_INTERIOR_COLOR) {
+                        save_poppler_annot_square_interior_color (ev_square, poppler_square);
                 }
         }
 
