@@ -2819,6 +2819,88 @@ get_poppler_annot_text_icon (EvAnnotationTextIcon icon)
 	}
 }
 
+static const gchar *
+get_poppler_annot_stamp_icon (EvAnnotationStampIcon icon)
+{
+	switch (icon) {
+                case EV_ANNOTATION_STAMP_ICON_APPROVED:
+                        return POPPLER_ANNOT_STAMP_ICON_APPROVED;
+                case EV_ANNOTATION_STAMP_ICON_ASIS:
+                        return POPPLER_ANNOT_STAMP_ICON_ASIS;
+                case EV_ANNOTATION_STAMP_ICON_CONFIDENTIAL:
+                        return POPPLER_ANNOT_STAMP_ICON_CONFIDENTIAL;
+                case EV_ANNOTATION_STAMP_ICON_DEPARTMENTAL:
+                        return POPPLER_ANNOT_STAMP_ICON_DEPARTMENTAL;
+                case EV_ANNOTATION_STAMP_ICON_DRAFT:
+                        return POPPLER_ANNOT_STAMP_ICON_DRAFT;
+                case EV_ANNOTATION_STAMP_ICON_EXPERIMENTAL:
+                        return POPPLER_ANNOT_STAMP_ICON_EXPERIMENTAL;
+                case EV_ANNOTATION_STAMP_ICON_EXPIRED:
+                        return POPPLER_ANNOT_STAMP_ICON_EXPIRED;
+                case EV_ANNOTATION_STAMP_ICON_FINAL:
+                        return POPPLER_ANNOT_STAMP_ICON_FINAL;
+                case EV_ANNOTATION_STAMP_ICON_FORCOMMENT:
+                        return POPPLER_ANNOT_STAMP_ICON_FORCOMMENT;
+                case EV_ANNOTATION_STAMP_ICON_FORPUBLICRELEASE:
+                        return POPPLER_ANNOT_STAMP_ICON_FORPUBLICRELEASE;
+                case EV_ANNOTATION_STAMP_ICON_NOTAPPROVED:
+                        return POPPLER_ANNOT_STAMP_ICON_NOTAPPROVED;
+                case EV_ANNOTATION_STAMP_ICON_NOTFORPUBLICRELEASE:
+                        return POPPLER_ANNOT_STAMP_ICON_NOTFORPUBLICRELEASE;
+                case EV_ANNOTATION_STAMP_ICON_SOLD:
+                        return POPPLER_ANNOT_STAMP_ICON_SOLD;
+                case EV_ANNOTATION_STAMP_ICON_TOPSECRET:
+                        return POPPLER_ANNOT_STAMP_ICON_TOPSECRET;
+                case EV_ANNOTATION_STAMP_ICON_UNKNOWN:
+	        default:
+	        	return POPPLER_ANNOT_STAMP_ICON_DRAFT;
+	}
+}
+
+static EvAnnotationStampIcon
+get_annot_stamp_icon (PopplerAnnotStamp *poppler_annot)
+{
+	gchar *icon = poppler_annot_stamp_get_icon (poppler_annot);
+	EvAnnotationStampIcon retval;
+
+	if (!icon)
+		return EV_ANNOTATION_STAMP_ICON_UNKNOWN;
+
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_APPROVED) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_APPROVED;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_ASIS) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_ASIS;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_CONFIDENTIAL) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_CONFIDENTIAL;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_DEPARTMENTAL) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_DEPARTMENTAL;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_DRAFT) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_DRAFT;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_EXPERIMENTAL) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_EXPERIMENTAL;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_EXPIRED) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_EXPIRED;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_FINAL) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_FINAL;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_FORCOMMENT) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_FORCOMMENT;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_FORPUBLICRELEASE) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_FORPUBLICRELEASE;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_NOTAPPROVED) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_NOTAPPROVED;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_NOTFORPUBLICRELEASE) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_NOTFORPUBLICRELEASE;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_SOLD) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_SOLD;
+        if (strcmp (icon, POPPLER_ANNOT_STAMP_ICON_TOPSECRET) == 0)
+                retval = EV_ANNOTATION_STAMP_ICON_TOPSECRET;
+	else
+		retval = EV_ANNOTATION_STAMP_ICON_UNKNOWN;
+
+	g_free (icon);
+	return retval;
+}
+
 static EvAnnotation *
 ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			     EvPage       *page)
@@ -2872,6 +2954,13 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 				g_object_unref (poppler_attachment);
 		}
 			break;
+                case POPPLER_ANNOT_STAMP: {
+			ev_annot = ev_annotation_stamp_new (page);
+
+			ev_annotation_stamp_set_icon (EV_ANNOTATION_STAMP (ev_annot),
+                                                      get_annot_stamp_icon (POPPLER_ANNOT_STAMP (poppler_annot)));
+		}
+			break;
 	        case POPPLER_ANNOT_LINK:
 	        case POPPLER_ANNOT_WIDGET:
 			/* Ignore link and widgets annots since they are already handled */
@@ -2885,7 +2974,6 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		case POPPLER_ANNOT_SOUND:
 		case POPPLER_ANNOT_SQUARE:
 		case POPPLER_ANNOT_SQUIGGLY:
-		case POPPLER_ANNOT_STAMP:
 		case POPPLER_ANNOT_STRIKE_OUT:
 		case POPPLER_ANNOT_UNDERLINE: {
 			/* FIXME: These annotations are unimplemented, but they were already
@@ -3155,6 +3243,15 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 		poppler_annot_text_set_icon (POPPLER_ANNOT_TEXT (poppler_annot),
 					     get_poppler_annot_text_icon (icon));
 	}
+
+        if (EV_IS_ANNOTATION_STAMP (annot)) {
+                EvAnnotationStampIcon icon;
+
+                icon = ev_annotation_stamp_get_icon (EV_ANNOTATION_STAMP (annot));
+                poppler_annot_stamp_set_icon (POPPLER_ANNOT_STAMP (poppler_annot),
+                                              get_poppler_annot_stamp_icon (icon));
+        }
+
 	poppler_page_add_annot (poppler_page, poppler_annot);
 
 	annot_mapping = g_new (EvMapping, 1);
