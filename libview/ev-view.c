@@ -3124,6 +3124,9 @@ ev_view_create_annotation (EvView          *view,
 		g_object_unref (page);
 		ev_document_doc_mutex_unlock ();
 		return;
+        case EV_ANNOTATION_TYPE_STAMP:
+                annot = ev_annotation_stamp_new (page);
+                break;
 	default:
 		g_assert_not_reached ();
 	}
