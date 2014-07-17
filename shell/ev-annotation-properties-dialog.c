@@ -48,6 +48,9 @@ struct _EvAnnotationPropertiesDialog {
         /* FreeText Annotations */
         GtkWidget       *font;
         GtkWidget       *quadding;
+
+        /* Square/Circle Annotations */
+        GtkWidget       *interior_color;
 };
 
 struct _EvAnnotationPropertiesDialogClass {
@@ -145,6 +148,19 @@ ev_annotation_properties_dialog_constructed (GObject *object)
                 gtk_widget_set_hexpand (dialog->quadding, TRUE);
                 gtk_widget_show (dialog->quadding);
 		break;
+        case EV_ANNOTATION_TYPE_CIRCLE:
+        case EV_ANNOTATION_TYPE_SQUARE:
+                /* Interior color chooser */
+                label = gtk_label_new (_("Interior Color:"));
+                gtk_misc_set_alignment (GTK_MISC (label), 0., 0.5);
+                gtk_grid_attach (GTK_GRID (grid), label, 0, 5, 1, 1);
+                gtk_widget_show (label);
+
+                dialog->interior_color = gtk_color_button_new ();
+                gtk_grid_attach (GTK_GRID (grid), dialog->interior_color, 1, 5, 1, 1);
+                gtk_widget_set_hexpand (dialog->interior_color, TRUE);
+                gtk_widget_show (dialog->interior_color);
+                break;
 	default:
 		break;
 	}
@@ -325,6 +341,25 @@ ev_annotation_properties_dialog_new_with_annotation (EvAnnotation *annot)
                 g_free (font);
         }
 
+        if (EV_IS_ANNOTATION_CIRCLE (annot)) {
+                EvAnnotationCircle *annot_circle;
+                GdkRGBA             interior_rgba;
+
+                annot_circle = EV_ANNOTATION_CIRCLE (annot);
+                ev_annotation_circle_get_interior_rgba (annot_circle, &interior_rgba);
+                gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog->interior_color), &interior_rgba);
+        }
+
+        if (EV_IS_ANNOTATION_SQUARE (annot)) {
+                EvAnnotationSquare *annot_square;
+                GdkRGBA             interior_rgba;
+                printf ("PROPERTIES - square\n");
+
+                annot_square = EV_ANNOTATION_SQUARE (annot);
+                ev_annotation_square_get_interior_rgba (annot_square, &interior_rgba);
+                gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog->interior_color), &interior_rgba);
+        }
+
 	return GTK_WIDGET (dialog);
 }
 
@@ -369,4 +404,11 @@ EvAnnotationFreeTextQuadding
 ev_annotation_properties_dialog_get_quadding (EvAnnotationPropertiesDialog *dialog)
 {
         return gtk_combo_box_get_active (GTK_COMBO_BOX (dialog->quadding));
+}
+
+void
+ev_annotation_properties_dialog_get_interior_rgba (EvAnnotationPropertiesDialog *dialog,
+					           GdkRGBA                      *rgba)
+{
+	gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (dialog->interior_color), rgba);
 }

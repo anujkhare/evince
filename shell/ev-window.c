@@ -6918,6 +6918,22 @@ ev_view_popup_cmd_annot_properties (GtkAction *action,
                         mask |= EV_ANNOTATIONS_SAVE_QUADDING;
         }
 
+        if (EV_IS_ANNOTATION_SQUARE (annot)) {
+                GdkRGBA interior_rgba;
+
+                ev_annotation_properties_dialog_get_interior_rgba (dialog, &interior_rgba);
+                if (ev_annotation_square_set_interior_rgba (EV_ANNOTATION_SQUARE (annot), &interior_rgba))
+                        mask |= EV_ANNOTATIONS_SAVE_INTERIOR_COLOR;
+        }
+
+        if (EV_IS_ANNOTATION_CIRCLE (annot)) {
+                GdkRGBA interior_rgba;
+
+                ev_annotation_properties_dialog_get_interior_rgba (dialog, &interior_rgba);
+                if (ev_annotation_circle_set_interior_rgba (EV_ANNOTATION_CIRCLE (annot), &interior_rgba))
+                        mask |= EV_ANNOTATIONS_SAVE_INTERIOR_COLOR;
+        }
+
 	if (mask != EV_ANNOTATIONS_SAVE_NONE) {
 		ev_document_doc_mutex_lock ();
 		ev_document_annotations_save_annotation (EV_DOCUMENT_ANNOTATIONS (window->priv->document),
