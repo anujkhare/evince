@@ -3205,7 +3205,10 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 	poppler_rect.x2 = rect->x2;
 	poppler_rect.y1 = height - rect->y2;
 	poppler_rect.y2 = height - rect->y1;
-	poppler_annot = poppler_annot_text_new (pdf_document->document, &poppler_rect);
+        if (EV_IS_ANNOTATION_TEXT (annot))
+	        poppler_annot = poppler_annot_text_new (pdf_document->document, &poppler_rect);
+        if (EV_IS_ANNOTATION_STAMP (annot))
+	        poppler_annot = poppler_annot_stamp_new (pdf_document->document, &poppler_rect);
 
 	ev_annotation_get_color (annot, &color);
 	poppler_color.red = color.red;
