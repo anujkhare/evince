@@ -66,9 +66,20 @@ struct _EvAnnotationAttachmentClass {
 	EvAnnotationClass parent_class;
 };
 
+struct _EvAnnotationStamp {
+	EvAnnotation parent;
+
+	EvAnnotationStampIcon icon;
+};
+
+struct _EvAnnotationStampClass {
+	EvAnnotationClass parent_class;
+};
+
 static void ev_annotation_markup_default_init          (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_text_markup_iface_init       (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_attachment_markup_iface_init (EvAnnotationMarkupInterface *iface);
+static void ev_annotation_stamp_markup_iface_init      (EvAnnotationMarkupInterface *iface);
 
 /* EvAnnotation */
 enum {
@@ -114,6 +125,16 @@ G_DEFINE_TYPE_WITH_CODE (EvAnnotationAttachment, ev_annotation_attachment, EV_TY
 		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
 					ev_annotation_attachment_markup_iface_init);
 	 });
+G_DEFINE_TYPE_WITH_CODE (EvAnnotationStamp, ev_annotation_stamp, EV_TYPE_ANNOTATION,
+	 {
+		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
+					ev_annotation_stamp_markup_iface_init);
+	 });
+
+/* EvAnnotationText */
+enum {
+	PROP_STAMP_ICON = PROP_MARKUP_POPUP_IS_OPEN + 1
+};
 
 /* EvAnnotation */
 static void
@@ -1230,3 +1251,113 @@ ev_annotation_attachment_set_attachment (EvAnnotationAttachment *annot,
 
 	return TRUE;
 }
+
+/* EvAnnotationStamp */
+static void
+ev_annotation_stamp_init (EvAnnotationStamp *annot)
+{
+	EV_ANNOTATION (annot)->type = EV_ANNOTATION_TYPE_STAMP;
+}
+
+static void
+ev_annotation_stamp_set_property (GObject      *object,
+				  guint         prop_id,
+				  const GValue *value,
+				  GParamSpec   *pspec)
+{
+	EvAnnotationStamp *annot = EV_ANNOTATION_STAMP (object);
+
+	if (prop_id < PROP_STAMP_ICON) {
+		ev_annotation_markup_set_property (object, prop_id, value, pspec);
+		return;
+	}
+
+	switch (prop_id) {
+	case PROP_STAMP_ICON:
+		ev_annotation_stamp_set_icon (annot, g_value_get_enum (value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+ev_annotation_stamp_get_property (GObject    *object,
+				  guint       prop_id,
+				  GValue     *value,
+				  GParamSpec *pspec)
+{
+	EvAnnotationStamp *annot = EV_ANNOTATION_STAMP (object);
+
+	if (prop_id < PROP_STAMP_ICON) {
+		ev_annotation_markup_get_property (object, prop_id, value, pspec);
+		return;
+	}
+
+	switch (prop_id) {
+	case PROP_STAMP_ICON:
+		g_value_set_enum (value, annot->icon);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+	}
+}
+
+static void
+ev_annotation_stamp_class_init (EvAnnotationStampClass *klass)
+{
+	GObjectClass *g_object_class = G_OBJECT_CLASS (klass);
+
+	ev_annotation_markup_class_install_properties (g_object_class);
+
+	g_object_class->set_property = ev_annotation_stamp_set_property;
+	g_object_class->get_property = ev_annotation_stamp_get_property;
+
+	g_object_class_install_property (g_object_class,
+					 PROP_STAMP_ICON,
+					 g_param_spec_enum ("icon",
+							    "Icon",
+							    "The icon of the stamp annotation",
+							    EV_TYPE_ANNOTATION_STAMP_ICON,
+							    EV_ANNOTATION_STAMP_ICON_DRAFT,
+							    G_PARAM_READWRITE |
+                                                            G_PARAM_STATIC_STRINGS));
+}
+
+static void
+ev_annotation_stamp_markup_iface_init (EvAnnotationMarkupInterface *iface)
+{
+}
+
+EvAnnotation *
+ev_annotation_stamp_new (EvPage *page)
+{
+	return EV_ANNOTATION (g_object_new (EV_TYPE_ANNOTATION_STAMP,
+					    "page", page,
+					    NULL));
+}
+
+EvAnnotationStampIcon
+ev_annotation_stamp_get_icon (EvAnnotationStamp *stamp)
+{
+	g_return_val_if_fail (EV_IS_ANNOTATION_STAMP (stamp), 0);
+
+	return stamp->icon;
+}
+
+gboolean
+ev_annotation_stamp_set_icon (EvAnnotationStamp    *stamp,
+			     EvAnnotationStampIcon  icon)
+{
+	g_return_val_if_fail (EV_IS_ANNOTATION_STAMP (stamp), FALSE);
+
+	if (stamp->icon == icon)
+		return FALSE;
+
+	stamp->icon = icon;
+
+	g_object_notify (G_OBJECT (stamp), "icon");
+
+	return TRUE;
+}
+

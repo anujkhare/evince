@@ -66,6 +66,14 @@ G_BEGIN_DECLS
 #define EV_IS_ANNOTATION_ATTACHMENT_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE((klass), EV_TYPE_ANNOTATION_ATTACHMENT))
 #define EV_ANNOTATION_ATTACHMENT_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS((object), EV_TYPE_ANNOTATION_ATTACHMENT, EvAnnotationAttachmentClass))
 
+/* EvAnnotationStamp */
+#define EV_TYPE_ANNOTATION_STAMP                 (ev_annotation_stamp_get_type())
+#define EV_ANNOTATION_STAMP(object)              (G_TYPE_CHECK_INSTANCE_CAST((object), EV_TYPE_ANNOTATION_STAMP, EvAnnotationStamp))
+#define EV_ANNOTATION_STAMP_CLASS(klass)         (G_TYPE_CHECK_CLASS_CAST((klass), EV_TYPE_ANNOTATION_STAMP, EvAnnotationStampClass))
+#define EV_IS_ANNOTATION_STAMP(object)           (G_TYPE_CHECK_INSTANCE_TYPE((object), EV_TYPE_ANNOTATION_STAMP))
+#define EV_IS_ANNOTATION_STAMP_CLASS(klass)      (G_TYPE_CHECK_CLASS_TYPE((klass), EV_TYPE_ANNOTATION_STAMP))
+#define EV_ANNOTATION_STAMP_GET_CLASS(object)    (G_TYPE_INSTANCE_GET_CLASS((object), EV_TYPE_ANNOTATION_STAMP, EvAnnotationStampClass))
+
 typedef struct _EvAnnotation                EvAnnotation;
 typedef struct _EvAnnotationClass           EvAnnotationClass;
 
@@ -78,9 +86,13 @@ typedef struct _EvAnnotationTextClass       EvAnnotationTextClass;
 typedef struct _EvAnnotationAttachment      EvAnnotationAttachment;
 typedef struct _EvAnnotationAttachmentClass EvAnnotationAttachmentClass;
 
+typedef struct _EvAnnotationStamp           EvAnnotationStamp;
+typedef struct _EvAnnotationStampClass      EvAnnotationStampClass;
+
 typedef enum {
 	EV_ANNOTATION_TYPE_UNKNOWN,
 	EV_ANNOTATION_TYPE_TEXT,
+	EV_ANNOTATION_TYPE_STAMP,
 	EV_ANNOTATION_TYPE_ATTACHMENT
 } EvAnnotationType;
 
@@ -96,6 +108,24 @@ typedef enum {
 	EV_ANNOTATION_TEXT_ICON_CIRCLE,
 	EV_ANNOTATION_TEXT_ICON_UNKNOWN
 } EvAnnotationTextIcon;
+
+typedef enum {
+        EV_ANNOTATION_STAMP_ICON_APPROVED,
+        EV_ANNOTATION_STAMP_ICON_ASIS,
+        EV_ANNOTATION_STAMP_ICON_CONFIDENTIAL,
+        EV_ANNOTATION_STAMP_ICON_DEPARTMENTAL,
+        EV_ANNOTATION_STAMP_ICON_DRAFT,
+        EV_ANNOTATION_STAMP_ICON_EXPERIMENTAL,
+        EV_ANNOTATION_STAMP_ICON_EXPIRED,
+        EV_ANNOTATION_STAMP_ICON_FINAL,
+        EV_ANNOTATION_STAMP_ICON_FORCOMMENT,
+        EV_ANNOTATION_STAMP_ICON_FORPUBLICRELEASE,
+        EV_ANNOTATION_STAMP_ICON_NOTAPPROVED,
+        EV_ANNOTATION_STAMP_ICON_NOTFORPUBLICRELEASE,
+        EV_ANNOTATION_STAMP_ICON_SOLD,
+        EV_ANNOTATION_STAMP_ICON_TOPSECRET,
+        EV_ANNOTATION_STAMP_ICON_UNKNOWN
+} EvAnnotationStampIcon;
 
 /* EvAnnotation */
 GType                ev_annotation_get_type                  (void) G_GNUC_CONST;
@@ -163,6 +193,12 @@ EvAttachment        *ev_annotation_attachment_get_attachment (EvAnnotationAttach
 gboolean             ev_annotation_attachment_set_attachment (EvAnnotationAttachment *annot,
 							      EvAttachment           *attachment);
 
+/* EvAnnotationText */
+GType                 ev_annotation_stamp_get_type           (void) G_GNUC_CONST;
+EvAnnotation         *ev_annotation_stamp_new                (EvPage                 *page);
+EvAnnotationStampIcon ev_annotation_stamp_get_icon           (EvAnnotationStamp      *stamp);
+gboolean              ev_annotation_stamp_set_icon           (EvAnnotationStamp      *stamp,
+							      EvAnnotationStampIcon   icon);
 G_END_DECLS
 
 #endif /* EV_ANNOTATION_H */
