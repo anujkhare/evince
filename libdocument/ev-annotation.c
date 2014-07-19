@@ -99,11 +99,22 @@ struct _EvAnnotationAttachmentClass {
 	EvAnnotationClass parent_class;
 };
 
+struct _EvAnnotationPolygon {
+	EvAnnotation parent;
+
+	GArray      *vertices;
+};
+
+struct _EvAnnotationPolygonClass {
+	EvAnnotationClass parent_class;
+};
+
 static void ev_annotation_markup_default_init          (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_text_markup_iface_init       (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_free_text_markup_iface_init  (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_circle_markup_iface_init     (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_square_markup_iface_init     (EvAnnotationMarkupInterface *iface);
+static void ev_annotation_polygon_markup_iface_init    (EvAnnotationMarkupInterface *iface);
 static void ev_annotation_attachment_markup_iface_init (EvAnnotationMarkupInterface *iface);
 
 /* EvAnnotation */
@@ -151,6 +162,11 @@ enum {
 	PROP_SQUARE_INTERIOR_RGBA = PROP_MARKUP_POPUP_IS_OPEN + 1
 };
 
+/* EvAnnotationPolygon */
+enum {
+	PROP_POLYGON_VERTICES = PROP_MARKUP_POPUP_IS_OPEN + 1
+};
+
 /* EvAnnotationAttachment */
 enum {
 	PROP_ATTACHMENT_ATTACHMENT = PROP_MARKUP_POPUP_IS_OPEN + 1
@@ -177,6 +193,11 @@ G_DEFINE_TYPE_WITH_CODE (EvAnnotationSquare, ev_annotation_square, EV_TYPE_ANNOT
 	 {
 		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
 					ev_annotation_square_markup_iface_init);
+	 });
+G_DEFINE_TYPE_WITH_CODE (EvAnnotationPolygon, ev_annotation_polygon, EV_TYPE_ANNOTATION,
+	 {
+		 G_IMPLEMENT_INTERFACE (EV_TYPE_ANNOTATION_MARKUP,
+					ev_annotation_polygon_markup_iface_init);
 	 });
 G_DEFINE_TYPE_WITH_CODE (EvAnnotationAttachment, ev_annotation_attachment, EV_TYPE_ANNOTATION,
 	 {
@@ -1621,6 +1642,127 @@ ev_annotation_square_set_interior_rgba (EvAnnotationSquare *annot,
 
         annot->interior_rgba = *rgba;
         g_object_notify (G_OBJECT (annot), "interior-rgba");
+
+        return TRUE;
+}
+
+/* EvAnnotationPolygon */
+static void
+ev_annotation_polygon_finalize (GObject *object)
+{
+        EvAnnotationPolygon *annot = EV_ANNOTATION_POLYGON (object);
+
+        if (annot->vertices) {
+                g_array_free (annot->vertices, FALSE);
+                annot->vertices = NULL;
+        }
+
+        G_OBJECT_CLASS (ev_annotation_polygon_parent_class)->finalize (object);
+}
+
+static void
+ev_annotation_polygon_init (EvAnnotationPolygon *annot)
+{
+        annot->vertices = g_array_new (FALSE, FALSE, sizeof (EvPoint));
+}
+
+
+static void
+ev_annotation_polygon_set_property (GObject      *object,
+                                    guint         prop_id,
+                                    const GValue *value,
+                                    GParamSpec   *pspec)
+{
+        EvAnnotationPolygon *annot = EV_ANNOTATION_POLYGON (object);
+
+        if (prop_id < PROP_POLYGON_VERTICES) {
+               ev_annotation_markup_set_property (object, prop_id, value, pspec);
+               return;
+        }
+
+        switch (prop_id) {
+                case PROP_POLYGON_VERTICES:
+                        ev_annotation_polygon_set_vertices (annot, g_value_get_boxed (value));
+                        break;
+                default:
+                        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        }
+}
+
+static void
+ev_annotation_polygon_get_property (GObject    *object,
+                                    guint       prop_id,
+                                    GValue     *value,
+                                    GParamSpec *pspec)
+{
+        EvAnnotationPolygon *annot = EV_ANNOTATION_POLYGON (object);
+
+        if (prop_id < PROP_POLYGON_VERTICES) {
+               ev_annotation_markup_get_property (object, prop_id, value, pspec);
+               return;
+        }
+
+        switch (prop_id) {
+                case PROP_POLYGON_VERTICES:
+                        g_value_set_boxed (value, ev_annotation_polygon_get_vertices (annot));
+                        break;
+                default:
+                        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+        }
+}
+
+static void
+ev_annotation_polygon_class_init (EvAnnotationPolygonClass *klass)
+{
+        GObjectClass *g_object_class = G_OBJECT_CLASS (klass);
+        EvAnnotationClass *ev_annotation_class = EV_ANNOTATION_CLASS (klass);
+
+        ev_annotation_markup_class_install_properties (g_object_class);
+
+        g_object_class->finalize = ev_annotation_polygon_finalize;
+        g_object_class->set_property = ev_annotation_polygon_set_property;
+        g_object_class->get_property = ev_annotation_polygon_get_property;
+
+        //ev_annotation_class->is_location_in_area = ev_annotation_text_markup_impl_is_location_in_area;
+
+        g_object_class_install_property (g_object_class,
+                                         PROP_POLYGON_VERTICES,
+                                         g_param_spec_boxed ("vertices",
+                                                             "Vertices",
+                                                             "The vertices of the annotation",
+                                                             G_TYPE_ARRAY,
+                                                             G_PARAM_READWRITE |
+                                                             G_PARAM_STATIC_STRINGS));
+}
+
+static void
+ev_annotation_polygon_markup_iface_init (EvAnnotationMarkupInterface *iface)
+{
+}
+
+GArray*
+ev_annotation_polygon_get_vertices (EvAnnotationPolygon *annot)
+{
+         GArray *result = g_array_sized_new (FALSE, FALSE,
+                                             sizeof (EvPoint),
+                                             annot->vertices->len);
+
+         g_array_append_vals (result, annot->vertices->data,
+                              annot->vertices->len);
+         return result;
+}
+
+gboolean
+ev_annotation_polygon_set_vertices (EvAnnotationPolygon *annot,
+                                    GArray              *arr)
+{
+        g_return_val_if_fail (arr != NULL, FALSE);
+        g_return_val_if_fail (arr->len > 0, FALSE);
+
+        if (annot->vertices->len)
+                g_array_remove_range (annot->vertices, 0, annot->vertices->len);
+
+        g_array_append_vals (annot->vertices, arr->data, arr->len);
 
         return TRUE;
 }

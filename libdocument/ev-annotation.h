@@ -91,6 +91,14 @@ G_BEGIN_DECLS
 #define EV_IS_ANNOTATION_SQUARE_CLASS(klass)      (G_TYPE_CHECK_CLASS_TYPE((klass), EV_TYPE_ANNOTATION_SQUARE))
 #define EV_ANNOTATION_SQUARE_GET_CLASS(object)    (G_TYPE_INSTANCE_GET_CLASS((object), EV_TYPE_ANNOTATION_SQUARE, EvAnnotationSquareClass))
 
+/* EvAnnotationPolygon */
+#define EV_TYPE_ANNOTATION_POLYGON                (ev_annotation_polygon_get_type())
+#define EV_ANNOTATION_POLYGON(object)             (G_TYPE_CHECK_INSTANCE_CAST((object), EV_TYPE_ANNOTATION_POLYGON, EvAnnotationPolygon))
+#define EV_ANNOTATION_POLYGON_CLASS(klass)        (G_TYPE_CHECK_CLASS_CAST((klass), EV_TYPE_ANNOTATION_POLYGON, EvAnnotationPolygonClass))
+#define EV_IS_ANNOTATION_POLYGON(object)          (G_TYPE_CHECK_INSTANCE_TYPE((object), EV_TYPE_ANNOTATION_POLYGON))
+#define EV_IS_ANNOTATION_POLYGON_CLASS(klass)     (G_TYPE_CHECK_CLASS_TYPE((klass), EV_TYPE_ANNOTATION_POLYGON))
+#define EV_ANNOTATION_POLYGON_GET_CLASS(object)   (G_TYPE_INSTANCE_GET_CLASS((object), EV_TYPE_ANNOTATION_POLYGON, EvAnnotationPolygonClass))
+
 typedef struct _EvAnnotation                EvAnnotation;
 typedef struct _EvAnnotationClass           EvAnnotationClass;
 
@@ -109,6 +117,9 @@ typedef struct _EvAnnotationCircleClass     EvAnnotationCircleClass;
 
 typedef struct _EvAnnotationSquare          EvAnnotationSquare;
 typedef struct _EvAnnotationSquareClass     EvAnnotationSquareClass;
+
+typedef struct _EvAnnotationPolygon         EvAnnotationPolygon;
+typedef struct _EvAnnotationPolygonClass    EvAnnotationPolygonClass;
 
 typedef struct _EvAnnotationAttachment      EvAnnotationAttachment;
 typedef struct _EvAnnotationAttachmentClass EvAnnotationAttachmentClass;
@@ -253,6 +264,14 @@ EvAnnotation        *ev_annotation_attachment_new            (EvPage            
 EvAttachment        *ev_annotation_attachment_get_attachment (EvAnnotationAttachment *annot);
 gboolean             ev_annotation_attachment_set_attachment (EvAnnotationAttachment *annot,
 							      EvAttachment           *attachment);
+
+/* EvAnnotationPolygon */
+GType                ev_annotation_polygon_get_type          (void) G_GNUC_CONST;
+EvAnnotation        *ev_annotation_polygon_new_closed        (EvPage                 *page);
+EvAnnotation        *ev_annotation_polygon_new_poly_line     (EvPage                 *page);
+GArray              *ev_annotation_polygon_get_vertices      (EvAnnotationPolygon    *annot);
+gboolean             ev_annotation_polygon_set_vertices      (EvAnnotationPolygon    *annot,
+                                                              GArray                 *vertices);
 /* EvAnnotationCalloutLine */
 GType                    ev_annotation_callout_line_get_type (void) G_GNUC_CONST;
 EvAnnotationCalloutLine *ev_annotation_callout_line_new      (void);
