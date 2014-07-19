@@ -1767,6 +1767,26 @@ ev_annotation_polygon_set_vertices (EvAnnotationPolygon *annot,
         return TRUE;
 }
 
+EvAnnotation *
+ev_annotation_polygon_new_closed (EvPage *page)
+{
+        EvAnnotation *annot = g_object_new (EV_TYPE_ANNOTATION_POLYGON,
+                                            "page", page,
+                                            NULL);
+        annot->type = EV_ANNOTATION_TYPE_POLYGON;
+        return annot;
+}
+
+EvAnnotation *
+ev_annotation_polygon_new_poly_line (EvPage *page)
+{
+        EvAnnotation *annot = g_object_new (EV_TYPE_ANNOTATION_POLYGON,
+                                            "page", page,
+                                            NULL);
+        annot->type = EV_ANNOTATION_TYPE_POLY_LINE;
+        return annot;
+}
+
 /* EvAnnotationAttachment */
 static void
 ev_annotation_attachment_finalize (GObject *object)
