@@ -2819,6 +2819,16 @@ get_poppler_annot_text_icon (EvAnnotationTextIcon icon)
 	}
 }
 
+static void
+save_poppler_annot_free_text_appearnce (PopplerAnnotFreeText *poppler_annot,
+                                        EvAnnotationFreeText *ev_annot)
+{
+        PopplerAnnotAppearance appearance;
+
+        appearance.font_size = ev_annotation_free_text_get_font_size (ev_annot);
+        poppler_annot_free_text_set_annot_appearance (poppler_annot, &appearance);
+}
+
 static EvAnnotation *
 ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			     EvPage       *page)
@@ -2843,16 +2853,19 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		}
 			break;
 	        case POPPLER_ANNOT_FREE_TEXT: {
-			PopplerAnnotFreeText *poppler_ftext;
-                        EvAnnotationFreeText *ev_ftext;
-
-                        poppler_ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
+			PopplerAnnotFreeText   *poppler_ftext;
+                        EvAnnotationFreeText   *ev_ftext;
+                        PopplerAnnotAppearance *appearance;
 
 			ev_annot = ev_annotation_free_text_new (page);
 
+                        poppler_ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
+                        appearance = poppler_annot_free_text_get_annot_appearance (poppler_ftext);
+
                         ev_ftext = EV_ANNOTATION_FREE_TEXT (ev_annot);
-                        ev_annotation_free_text_set_font_size (ev_ftext,
-                                                               poppler_annot_free_text_get_font_size (poppler_ftext));
+
+                        ev_annotation_free_text_set_font_size (ev_ftext, appearance->font_size);
+                        poppler_annot_appearance_free (appearance);
                         ev_annotation_free_text_set_quadding (ev_ftext,
                                                               (EvAnnotationFreeTextQuadding)poppler_annot_free_text_get_quadding (poppler_ftext));
 		}
@@ -3149,6 +3162,7 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
                         EvAnnotationFreeText *ftext = EV_ANNOTATION_FREE_TEXT (annot);
 
                         poppler_annot = poppler_annot_free_text_new (pdf_document->document, &poppler_rect);
+                        save_poppler_annot_free_text_appearnce (POPPLER_ANNOT_FREE_TEXT (poppler_annot), ftext);
                 }
                         break;
 
@@ -3284,15 +3298,14 @@ pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annota
 
         if (EV_IS_ANNOTATION_FREE_TEXT (annot)) {
                 EvAnnotationFreeText *ev_ftext = EV_ANNOTATION_FREE_TEXT (annot);
-                PopplerAnnotFreeText *ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
+                PopplerAnnotFreeText *poppler_ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
 
                 if (mask & EV_ANNOTATIONS_SAVE_FONT) {
-                        poppler_annot_free_text_set_font_size (ftext,
-                                                               ev_annotation_free_text_get_font_size (ev_ftext));
+                        save_poppler_annot_free_text_appearnce (poppler_ftext, ev_ftext);
                 }
 
                 if (mask & EV_ANNOTATIONS_SAVE_QUADDING) {
-                        poppler_annot_free_text_set_quadding (ftext,
+                        poppler_annot_free_text_set_quadding (poppler_ftext,
                                                               (PopplerAnnotFreeTextQuadding) ev_annotation_free_text_get_quadding (ev_ftext));
                 }
         }
