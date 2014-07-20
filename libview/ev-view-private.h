@@ -205,6 +205,7 @@ struct _EvView {
 	GdkRectangle       annot_rect;
 	GdkRectangle       annot_rect_prev;
 	guint              annot_rect_update_id;
+	GArray            *annot_vertices;
 
 	/* Focus */
 	EvMapping *focused_element;

@@ -3287,6 +3287,14 @@ ev_view_create_annotation (EvView          *view,
                 ev_annotation_circle_set_interior_rgba (EV_ANNOTATION_CIRCLE (annot), &interior_rgba);
         }
 		break;
+        case EV_ANNOTATION_TYPE_POLYGON: {
+                annot = ev_annotation_polygon_new_closed (page);
+        }
+                break;
+        case EV_ANNOTATION_TYPE_POLY_LINE: {
+                annot = ev_annotation_polygon_new_poly_line (page);
+        }
+                break;
 	case EV_ANNOTATION_TYPE_ATTACHMENT:
 		/* TODO */
 		g_object_unref (page);
@@ -3313,6 +3321,28 @@ ev_view_create_annotation (EvView          *view,
 			      "opacity", 1.0,
 			      NULL);
 	}
+
+        if (EV_IS_ANNOTATION_POLYGON (annot)) {
+                guint i;
+
+                /* Transform each of the vertices to a doc point */
+                for (i = 0; i < view->annot_vertices->len; ++i) {
+                        EvPoint  *ev_point;
+                        GdkPoint  point;
+                        double    doc_x, doc_y;
+
+                        ev_point = &g_array_index (view->annot_vertices, EvPoint, i);
+                        point.x = ev_point->x;
+                        point.y = ev_point->y;
+                        _ev_view_transform_view_point_to_doc_point (view, &point, &page_area,
+                                                                    &border, &doc_x, &doc_y);
+                        ev_point->x = doc_x;
+                        ev_point->y = doc_y;
+                }
+                ev_annotation_polygon_set_vertices (EV_ANNOTATION_POLYGON (annot), view->annot_vertices);
+                g_array_free (view->annot_vertices, FALSE);
+        }
+
 	ev_document_annotations_add_annotation (EV_DOCUMENT_ANNOTATIONS (view->document),
 						annot, &doc_rect);
 	ev_document_doc_mutex_unlock ();
@@ -3334,7 +3364,8 @@ ev_view_create_annotation (EvView          *view,
 	}
 
 	region = cairo_region_create_rectangle (&view_rect);
-	ev_view_reload_page (view, view->current_page, region);
+	//ev_view_reload_page (view, view->current_page, region);
+	ev_view_reload_page (view, view->current_page, NULL);
 	cairo_region_destroy (region);
 
 	g_signal_emit (view, signals[SIGNAL_ANNOT_ADDED], 0, annot);
@@ -4817,6 +4848,19 @@ position_caret_cursor_for_event (EvView         *view,
 	return TRUE;
 }
 
+static void
+finish_adding_annot (EvView         *view,
+                     GdkEventButton *event)
+{
+	view->adding_annot = FALSE;
+	ev_view_handle_cursor_over_xy (view, event->x, event->y);
+	view->pressed_button = -1;
+
+	ev_view_create_annotation (view,
+				   view->adding_annot_type,
+				   view->annot_rect);
+}
+
 static gboolean
 ev_view_button_press_event (GtkWidget      *widget,
 			    GdkEventButton *event)
@@ -4857,6 +4901,10 @@ ev_view_button_press_event (GtkWidget      *widget,
                                 view->annot_rect_prev.y = view->annot_rect.y = event->y + view->scroll_y;
                                 view->annot_rect_prev.width  = view->annot_rect.width = 0;
                                 view->annot_rect_prev.height = view->annot_rect.height = 0;
+
+                                if (!view->annot_vertices && (view->adding_annot_type == EV_ANNOTATION_TYPE_POLYGON ||
+                                                              view->adding_annot_type == EV_ANNOTATION_TYPE_POLY_LINE))
+                                        view->annot_vertices = g_array_new (FALSE, FALSE, sizeof (EvPoint));
                                 return FALSE;
                         }
 
@@ -4931,6 +4979,12 @@ ev_view_button_press_event (GtkWidget      *widget,
 			ev_view_set_focused_element_at_location (view, event->x, event->y);
 			return TRUE;
 		case 3:
+                        if (view->adding_annot && (view->adding_annot_type == EV_ANNOTATION_TYPE_POLYGON ||
+                                                   view->adding_annot_type == EV_ANNOTATION_TYPE_POLY_LINE)) {
+                                //TODO create contex menu
+                                finish_adding_annot (view, event);
+		                return FALSE;
+                        }
 			view->scroll_info.start_y = event->y;
 			ev_view_set_focused_element_at_location (view, event->x, event->y);
 			return ev_view_do_popup_menu (view, event->x, event->y);
@@ -5366,17 +5420,20 @@ ev_view_button_release_event (GtkWidget      *widget,
 	if (view->annot_rect_update_id) {
 	        g_source_remove (view->annot_rect_update_id);
 	        view->annot_rect_update_id = 0;
-       }
+        }
+
 	if (view->adding_annot && view->pressed_button == 1) {
-		view->adding_annot = FALSE;
-		ev_view_handle_cursor_over_xy (view, event->x, event->y);
-		view->pressed_button = -1;
+                if (view->adding_annot_type == EV_ANNOTATION_TYPE_POLYGON ||
+                    view->adding_annot_type == EV_ANNOTATION_TYPE_POLY_LINE) {
+                        EvPoint vertex;
 
-		ev_view_create_annotation (view,
-					   view->adding_annot_type,
-					   view->annot_rect);
-
-		return FALSE;
+                        vertex.x = event->x + view->scroll_x;
+                        vertex.y = event->y + view->scroll_y;
+                        g_array_append_val (view->annot_vertices, vertex);
+                } else {
+                        finish_adding_annot (view, event);
+                }
+                        return FALSE;
 	}
 
 	if (view->pressed_button == 2) {
