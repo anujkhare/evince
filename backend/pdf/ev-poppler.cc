@@ -2848,6 +2848,28 @@ gdk_rgba_from_poppler_color (PopplerColor *poppler_color,
         rgba->alpha = 1.;
 }
 
+static GArray *
+get_ev_points_from_poppler_points (GArray  *poppler_points,
+                                   gdouble  page_height)
+{
+        GArray *ev_points;
+
+        ev_points = g_array_sized_new (FALSE, FALSE, sizeof (EvPoint), poppler_points->len);
+
+        for (guint i = 0; i < poppler_points->len; ++i) {
+                EvPoint ev_point;
+                PopplerPoint poppler_point;
+
+                poppler_point = g_array_index (poppler_points, PopplerPoint, i);
+                ev_point.x = poppler_point.x;
+                ev_point.y = page_height - poppler_point.y;
+
+                g_array_append_val (ev_points, ev_point);
+        }
+
+        return ev_points;
+}
+
 static EvAnnotation *
 ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			     EvPage       *page)
@@ -2913,6 +2935,14 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
                 }
                         break;
 
+                case POPPLER_ANNOT_POLYGON: {
+                        ev_annot = ev_annotation_polygon_new_closed (page);
+                }
+                        break;
+                case POPPLER_ANNOT_POLY_LINE: {
+                        ev_annot = ev_annotation_polygon_new_poly_line (page);
+                }
+                        break;
 	        case POPPLER_ANNOT_FILE_ATTACHMENT: {
 			PopplerAnnotFileAttachment *poppler_annot_attachment;
 			PopplerAttachment          *poppler_attachment;
@@ -3066,6 +3096,20 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 
 			g_free (label);
 		}
+
+                if (POPPLER_IS_ANNOT_POLYGON (poppler_annot)) {
+                        GArray *poppler_points;
+			gdouble height;
+
+			poppler_page_get_size (POPPLER_PAGE (page->backend_page),
+					       NULL, &height);
+
+                        poppler_points = poppler_annot_polygon_get_vertices (POPPLER_ANNOT_POLYGON (poppler_annot));
+                        ev_annotation_polygon_set_vertices (EV_ANNOTATION_POLYGON (ev_annot),
+                                                            get_ev_points_from_poppler_points (poppler_points, height));
+                        g_array_free (poppler_points, FALSE);
+                }
+
 	}
 
 	return ev_annot;
@@ -3171,6 +3215,29 @@ poppler_color_from_gdk_rgba (GdkRGBA      *rgba,
         poppler_color->blue  = rgba->blue * 65535.;
 }
 
+
+static GArray *
+get_poppler_points_from_ev_points (GArray *ev_points,
+                                   gdouble page_height)
+{
+        GArray *poppler_points;
+
+        poppler_points = g_array_sized_new (FALSE, FALSE, sizeof (PopplerPoint), ev_points->len);
+
+        for (guint i = 0; i < ev_points->len; ++i) {
+                PopplerPoint poppler_point;
+                EvPoint      ev_point;
+
+                ev_point = g_array_index (ev_points, EvPoint, i);
+                poppler_point.x = ev_point.x;
+                poppler_point.y = page_height - ev_point.y;
+
+                g_array_append_val (poppler_points, poppler_point);
+        }
+
+        return poppler_points;
+}
+
 static void
 save_poppler_annot_circle_interior_color (EvAnnotationCircle *annot,
                                           PopplerAnnotCircle *poppler_annot)
@@ -3262,6 +3329,14 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
                 }
                         break;
 
+                case EV_ANNOTATION_TYPE_POLYGON:
+                        poppler_annot = poppler_annot_polygon_new_closed (pdf_document->document, &poppler_rect);
+                        break;
+
+                case EV_ANNOTATION_TYPE_POLY_LINE:
+                        poppler_annot = poppler_annot_polygon_new_poly_line (pdf_document->document, &poppler_rect);
+                        break;
+
                 default: {
                         poppler_annot = NULL;
                 }
@@ -3296,6 +3371,19 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 		if (label)
 			poppler_annot_markup_set_label (POPPLER_ANNOT_MARKUP (poppler_annot), label);
 	}
+
+        if (EV_IS_ANNOTATION_POLYGON (annot)) {
+                GArray *ev_vertices = NULL;
+                GArray *poppler_vertices = NULL;
+
+                ev_vertices = ev_annotation_polygon_get_vertices (EV_ANNOTATION_POLYGON (annot));
+
+                poppler_vertices = get_poppler_points_from_ev_points (ev_vertices, height);
+                g_array_free (ev_vertices, FALSE);
+
+                poppler_annot_polygon_set_vertices (POPPLER_ANNOT_POLYGON (poppler_annot), poppler_vertices);
+                g_array_free (poppler_vertices, FALSE);
+        }
 
 	poppler_page_add_annot (poppler_page, poppler_annot);
 
