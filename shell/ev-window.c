@@ -6447,14 +6447,12 @@ ev_window_popup_cmd_annot_properties (GSimpleAction *action,
                 EvAnnotationFreeText         *annot_ftext;
                 PangoFontDescription         *pango_font;
                 const gchar                  *font;
-                const gchar                  *font_family;
                 gdouble                       font_size;
 
                 quadding = ev_annotation_properties_dialog_get_quadding (dialog);
                 font = ev_annotation_properties_dialog_get_font (dialog);
 
                 pango_font = pango_font_description_from_string (font);
-                font_family = pango_font_description_get_family (pango_font);
                 font_size = pango_font_description_get_size (pango_font)/ PANGO_SCALE,
 
                 annot_ftext = EV_ANNOTATION_FREE_TEXT (annot);
