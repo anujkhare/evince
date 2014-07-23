@@ -3158,6 +3158,8 @@ ev_view_annotation_free_text_focus_out (GtkWidget     *widget,
 static GtkJustification
 get_gtk_justification (EvAnnotationFreeTextQuadding quadding)
 {
+        /* Gtk stores the enum as LEFT, RIGHT, CENTER,
+            while we store it as LEFT, CENTER, RIGHT */
         switch (quadding) {
                 case EV_ANNOTATION_FREE_TEXT_QUADDING_LEFT:     //0
                         return GTK_JUSTIFY_LEFT;
@@ -3180,16 +3182,36 @@ static GtkWidget *
 ev_view_annotation_free_text_create_widget (EvView       *view,
 				            EvAnnotation *annot)
 {
-        GtkWidget       *text = NULL;
-        GtkTextBuffer   *buffer;
-        gchar           *txt;
+        GtkWidget            *text = NULL;
+        GtkTextBuffer        *buffer;
+        const gchar          *txt;
+        GdkRGBA               rgba;
+        GdkScreen            *screen;
+        gdouble               zoom;
+        gdouble               size;
+        PangoFontDescription *pango_font;
 
         text = gtk_text_view_new ();
-        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text), GTK_WRAP_WORD);
+        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text), GTK_WRAP_CHAR);
         gtk_text_view_set_justification (GTK_TEXT_VIEW (text),
-                                         get_gtk_justification (ev_annotation_free_text_get_quadding (EV_ANNOTATION_FREE_TEXT(annot))));
+                                         get_gtk_justification (ev_annotation_free_text_get_quadding (EV_ANNOTATION_FREE_TEXT (annot))));
 
-        buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (text));               //FIXME const
+        ev_annotation_get_rgba (annot, &rgba);
+        gtk_widget_override_background_color (GTK_WIDGET (text), GTK_STATE_FLAG_NORMAL, &rgba);
+
+        /* Font */
+        pango_font = pango_font_description_new ();
+
+        /* Scale font size according to zoom level */
+        screen = gtk_widget_get_screen (GTK_WIDGET (view));
+        zoom = view->scale / ev_document_misc_get_screen_dpi (screen) * 72.0;
+        size = ev_annotation_free_text_get_font_size (EV_ANNOTATION_FREE_TEXT (annot)) * zoom * PANGO_SCALE;
+        pango_font_description_set_size (pango_font, size);
+
+        gtk_widget_override_font (GTK_WIDGET (text), pango_font);
+        pango_font_description_free (pango_font);
+
+        buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (text));
 
         txt = ev_annotation_get_contents (annot);
         if (txt) {
