@@ -6457,7 +6457,7 @@ ev_window_popup_cmd_annot_properties (GSimpleAction *action,
 
                 annot_ftext = EV_ANNOTATION_FREE_TEXT (annot);
                 if (ev_annotation_free_text_set_font_size (annot_ftext, font_size))
-                        mask |= EV_ANNOTATIONS_SAVE_FONT;
+                        mask |= EV_ANNOTATIONS_SAVE_FONT_SIZE;
 
                 if (ev_annotation_free_text_set_quadding (annot_ftext, quadding))
                         mask |= EV_ANNOTATIONS_SAVE_QUADDING;
