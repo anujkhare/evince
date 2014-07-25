@@ -3149,6 +3149,10 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
                         gdouble               font_size;
                         PopplerColor         *poppler_color = NULL;
 
+                        poppler_color = poppler_color_new ();
+                        poppler_color->red = 65535;
+                        poppler_color->blue = 0;
+                        poppler_color->green = 0;
                         //TODO
                         font_size = ev_annotation_free_text_get_font_size (EV_ANNOTATION_FREE_TEXT (annot));
                         //ev_annotation_free_text_get_font_color (EV_ANNOTATION_FREE_TEXT (annot), &color);
