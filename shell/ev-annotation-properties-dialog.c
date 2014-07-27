@@ -47,6 +47,7 @@ struct _EvAnnotationPropertiesDialog {
 
         /* FreeText Annotations */
         GtkWidget       *font;
+	GtkWidget       *font_color;
         GtkWidget       *quadding;
 };
 
@@ -130,10 +131,21 @@ ev_annotation_properties_dialog_constructed (GObject *object)
 		gtk_grid_attach (GTK_GRID (grid), dialog->font, 1, 5, 1, 1);
                 gtk_widget_show (dialog->font);
 
+                /* Font color button */
+        	label = gtk_label_new (_("Font Color:"));
+        	gtk_misc_set_alignment (GTK_MISC (label), 0., 0.5);
+        	gtk_grid_attach (GTK_GRID (grid), label, 0, 6, 1, 1);
+        	gtk_widget_show (label);
+
+        	dialog->font_color = gtk_color_button_new ();
+        	gtk_grid_attach (GTK_GRID (grid), dialog->font_color, 1, 6, 1, 1);
+                gtk_widget_set_hexpand (dialog->font_color, TRUE);
+        	gtk_widget_show (dialog->font_color);
+
                 /* Quadding combo box */
                 label = gtk_label_new (_("Quadding:"));
 		gtk_misc_set_alignment (GTK_MISC (label), 0., 0.5);
-		gtk_grid_attach (GTK_GRID (grid), label, 0, 6, 1, 1);
+		gtk_grid_attach (GTK_GRID (grid), label, 0, 7, 1, 1);
 		gtk_widget_show (label);
 
 		dialog->quadding = gtk_combo_box_text_new ();
@@ -141,7 +153,7 @@ ev_annotation_properties_dialog_constructed (GObject *object)
 		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (dialog->quadding), _("Center Justified"));
 		gtk_combo_box_text_append_text (GTK_COMBO_BOX_TEXT (dialog->quadding), _("Right Justified"));
 		gtk_combo_box_set_active (GTK_COMBO_BOX (dialog->quadding), 0);
-		gtk_grid_attach (GTK_GRID (grid), dialog->quadding, 1, 6, 1, 1);
+		gtk_grid_attach (GTK_GRID (grid), dialog->quadding, 1, 7, 1, 1);
                 gtk_widget_set_hexpand (dialog->quadding, TRUE);
                 gtk_widget_show (dialog->quadding);
 		break;

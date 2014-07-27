@@ -4477,9 +4477,10 @@ draw_annotation_rectangle (EvView  *view,
         cairo_save (cr);
         cairo_rectangle (cr, draw_rect.x,  draw_rect.y,
                          draw_rect.width, draw_rect.height);
-        cairo_set_source_rgb (cr, 1, 0, 0);
-        cairo_set_dash (cr, &dash_length, 1, 0);
-        cairo_stroke (cr);
+        //cairo_set_dash (cr, &dash_length, 1, 0);
+        cairo_stroke_preserve (cr);
+        cairo_set_source_rgb (cr, 1, 1, 0);
+        cairo_fill (cr);
         cairo_restore (cr);
 }
 
