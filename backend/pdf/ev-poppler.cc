@@ -3148,12 +3148,15 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
                         EvAnnotationFreeText *ftext = EV_ANNOTATION_FREE_TEXT (annot);
                         gdouble               font_size;
                         PopplerColor         *poppler_color = NULL;
+                        PopplerFontDescription *poppler_font;
 
                         //TODO
                         font_size = ev_annotation_free_text_get_font_size (EV_ANNOTATION_FREE_TEXT (annot));
                         //ev_annotation_free_text_get_font_color (EV_ANNOTATION_FREE_TEXT (annot), &color);
-                        poppler_annot = poppler_annot_free_text_new (pdf_document->document, &poppler_rect,
-                                                                     font_size, poppler_color);
+                        poppler_font = poppler_font_description_new ();
+                        poppler_font->size = font_size;
+                        poppler_font->color = poppler_color;
+                        poppler_annot = poppler_annot_free_text_new (pdf_document->document, &poppler_rect, poppler_font);
                 }
                         break;
 
