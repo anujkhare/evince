@@ -91,6 +91,8 @@ typedef struct _EvAnnotationCalloutLine     EvAnnotationCalloutLine;
 typedef struct _EvAnnotationAttachment      EvAnnotationAttachment;
 typedef struct _EvAnnotationAttachmentClass EvAnnotationAttachmentClass;
 
+typedef struct _EvAnnotationBorder          EvAnnotationBorder;
+
 typedef enum {
 	EV_ANNOTATION_TYPE_UNKNOWN,
 	EV_ANNOTATION_TYPE_TEXT,
@@ -133,6 +135,20 @@ struct _EvAnnotationCalloutLine {
         gdouble y3;
 };
 
+typedef enum {
+        EV_ANNOTATION_BORDER_STYLE_SOLID,
+        EV_ANNOTATION_BORDER_STYLE_DASHED,
+        EV_ANNOTATION_BORDER_STYLE_BEVELED,
+        EV_ANNOTATION_BORDER_STYLE_INSET,
+        EV_ANNOTATION_BORDER_STYLE_UNDERLINED,
+        EV_ANNOTATION_BORDER_STYLE_UNKNOWN
+} EvAnnotationBorderStyle;
+
+struct _EvAnnotationBorder {
+        gdouble                 width;
+        EvAnnotationBorderStyle style;
+};
+
 /* EvAnnotation */
 GType                ev_annotation_get_type                  (void) G_GNUC_CONST;
 EvAnnotationType     ev_annotation_get_annotation_type       (EvAnnotation           *annot);
@@ -161,6 +177,10 @@ void                 ev_annotation_get_rgba                  (EvAnnotation      
                                                               GdkRGBA                *rgba);
 gboolean             ev_annotation_set_rgba                  (EvAnnotation           *annot,
                                                               const GdkRGBA          *rgba);
+void                 ev_annotation_get_border                (EvAnnotation             *annot,
+                                                              EvAnnotationBorder       *border);
+gboolean             ev_annotation_set_border                (EvAnnotation             *annot,
+                                                              const EvAnnotationBorder *border);
 
 /* EvAnnotationMarkup */
 GType                ev_annotation_markup_get_type           (void) G_GNUC_CONST;
@@ -219,6 +239,12 @@ GType                    ev_annotation_callout_line_get_type (void) G_GNUC_CONST
 EvAnnotationCalloutLine *ev_annotation_callout_line_new      (void);
 EvAnnotationCalloutLine *ev_annotation_callout_line_copy     (EvAnnotationCalloutLine *callout);
 void                     ev_annotation_callout_line_free     (EvAnnotationCalloutLine *callout);
+
+/* EvAnnotation */
+GType                    ev_annotation_border_get_type       (void) G_GNUC_CONST;
+EvAnnotationBorder      *ev_annotation_border_new            (void);
+EvAnnotationBorder      *ev_annotation_border_copy           (EvAnnotationBorder *border);
+void                     ev_annotation_border_free           (EvAnnotationBorder *border);
 
 
 G_END_DECLS
