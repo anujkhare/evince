@@ -2819,6 +2819,39 @@ get_poppler_annot_text_icon (EvAnnotationTextIcon icon)
 	}
 }
 
+static EvAnnotationBorder *
+get_ev_annotation_border_from_poppler_annot (PopplerAnnot *poppler_annot)
+{
+        PopplerAnnotBorder *poppler_border;
+        EvAnnotationBorder *border = NULL;
+
+        poppler_border = poppler_annot_get_border (poppler_annot);
+        if (poppler_border) {
+                border = ev_annotation_border_new ();
+                border->width = poppler_border->width;
+                border->style = (EvAnnotationBorderStyle) poppler_border->style;
+                poppler_annot_border_free (poppler_border);
+        }
+
+        return border;
+}
+
+static void
+poppler_color_to_gdk_rgba (PopplerColor *poppler_color,
+                           GdkRGBA      *rgba)
+{
+        if (poppler_color) {
+                rgba->red = (gdouble) poppler_color->red / 65535;
+                rgba->green = (gdouble) poppler_color->green / 65535;
+                rgba->blue = (gdouble) poppler_color->blue / 65535;
+        } else {
+                rgba->red = 0.0;
+                rgba->green = 0.0;
+                rgba->blue = 0.0;
+        }
+        rgba->alpha = 1.0;
+}
+
 static EvAnnotation *
 ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			     EvPage       *page)
@@ -2843,17 +2876,22 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		}
 			break;
 	        case POPPLER_ANNOT_FREE_TEXT: {
+//#ifdef POPPLER_ANNOT_FREE_TEXT_READY
 			PopplerAnnotFreeText   *poppler_ftext;
                         EvAnnotationFreeText   *ev_ftext;
+                        GdkRGBA                 rgba;
 
 			ev_annot = ev_annotation_free_text_new (page);
 
                         poppler_ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
                         ev_ftext = EV_ANNOTATION_FREE_TEXT (ev_annot);
 
+                        poppler_color_to_gdk_rgba (poppler_annot_free_text_get_font_color (poppler_ftext), &rgba);
+                        ev_annotation_free_text_set_font_color (ev_ftext, &rgba);
                         ev_annotation_free_text_set_font_size (ev_ftext, poppler_annot_free_text_get_font_size (poppler_ftext));
                         ev_annotation_free_text_set_quadding (ev_ftext,
                                                               (EvAnnotationFreeTextQuadding)poppler_annot_free_text_get_quadding (poppler_ftext));
+//#endif
 		}
 			break;
 	        case POPPLER_ANNOT_FILE_ATTACHMENT: {
@@ -2943,6 +2981,7 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		gchar   *contents;
 		gchar   *name;
 		GdkColor color;
+		EvAnnotationBorder *border;
 
 		contents = poppler_annot_get_contents (poppler_annot);
 		if (contents) {
@@ -2966,6 +3005,10 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 
 		poppler_annot_color_to_gdk_color (poppler_annot, &color);
 		ev_annotation_set_color (ev_annot, &color);
+
+		border = get_ev_annotation_border (poppler_annot);
+		ev_annotation_set_border (ev_annot, border);
+		ev_annotation_border_free (border);
 
 		if (POPPLER_IS_ANNOT_MARKUP (poppler_annot)) {
 			PopplerAnnotMarkup *markup;
@@ -3241,6 +3284,14 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 }
 
 static void
+ev_border_to_poppler_border (EvAnnotationBorder *ev_border,
+                             PopplerAnnotBorder *poppler_border)
+{
+        poppler_border->width = ev_border->width;
+        poppler_border->style = PopplerAnnotBorderStyle (ev_border->style);
+}
+
+static void
 pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annotations,
 					  EvAnnotation          *annot,
 					  EvAnnotationsSaveMask  mask)
@@ -3264,6 +3315,15 @@ pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annota
 		color.green = ev_color.green;
 		color.blue = ev_color.blue;
 		poppler_annot_set_color (poppler_annot, &color);
+	}
+
+	if (mask & EV_ANNOTATIONS_SAVE_BORDER) {
+		EvAnnotationBorder ev_border;
+		PopplerAnnotBorder poppler_border;
+
+		ev_annotation_get_border (annot, &ev_border);
+                ev_border_to_poppler_border (&ev_border, &poppler_border);
+		poppler_annot_set_border (poppler_annot, &poppler_border);
 	}
 
 	if (EV_IS_ANNOTATION_MARKUP (annot)) {
