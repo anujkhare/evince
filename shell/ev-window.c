@@ -6405,6 +6405,7 @@ ev_window_popup_cmd_annot_properties (GSimpleAction *action,
 	EvAnnotationPropertiesDialog *dialog;
 	EvAnnotation                 *annot = window->priv->annot;
 	EvAnnotationsSaveMask         mask = EV_ANNOTATIONS_SAVE_NONE;
+	EvAnnotationBorder            border;
 
 	if (!annot)
 		return;
@@ -6433,6 +6434,10 @@ ev_window_popup_cmd_annot_properties (GSimpleAction *action,
 	popup_is_open = ev_annotation_properties_dialog_get_popup_is_open (dialog);
 	if (ev_annotation_markup_set_popup_is_open (EV_ANNOTATION_MARKUP (annot), popup_is_open))
 		mask |= EV_ANNOTATIONS_SAVE_POPUP_IS_OPEN;
+
+	ev_annotation_properties_dialog_get_border (dialog, &border);
+	if (ev_annotation_set_border (annot, &border))
+		mask |= EV_ANNOTATIONS_SAVE_BORDER;
 
 	if (EV_IS_ANNOTATION_TEXT (annot)) {
 		EvAnnotationTextIcon icon;
