@@ -3178,39 +3178,115 @@ get_gtk_justification (EvAnnotationFreeTextQuadding quadding)
         }
 }
 
+static guint
+some_length_function (gchar *str)
+{
+        guint len = 0;
+
+        if (!str)
+                return 0;
+
+        for (len = 0; str[len] != '\0'; ++len)
+                len++;
+        return len;
+}
+
+static gchar *
+get_annot_border_style (EvAnnotationBorder *border)
+{
+        printf ("STYLE : %d\n", border->style);
+        return "solid";
+        switch (border->style) {
+                case EV_ANNOTATION_BORDER_STYLE_SOLID:
+                        return "solid";
+                case EV_ANNOTATION_BORDER_STYLE_DASHED:
+                        return "dashed";
+                case EV_ANNOTATION_BORDER_STYLE_BEVELED:
+                        return "outset";                //FIXME: ?
+                case EV_ANNOTATION_BORDER_STYLE_INSET:
+                        return "inset";
+                case EV_ANNOTATION_BORDER_STYLE_UNDERLINED:
+                        return "underlined";
+                default:
+                        return "Unknown";
+        }
+}
+
+/* Returns a GtkBox containing the text widget */
 static GtkWidget *
 ev_view_annotation_free_text_create_widget (EvView       *view,
 				            EvAnnotation *annot)
 {
         GtkWidget            *text = NULL;
+        GtkWidget            *vbox = NULL;
         GtkTextBuffer        *buffer;
         const gchar          *txt;
-        GdkRGBA               rgba;
+        GdkRGBA               bg_rgba;
+        GdkRGBA               fg_rgba;
         GdkScreen            *screen;
         gdouble               zoom;
         gdouble               size;
-        PangoFontDescription *pango_font;
+        GtkCssProvider       *css_provider;
+        GtkStyleContext      *style_context;
+        gchar                *css;
+        EvAnnotationBorder    border;
+        gdouble               border_size;
 
+        vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
         text = gtk_text_view_new ();
-        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text), GTK_WRAP_CHAR);
+        gtk_box_pack_start (GTK_BOX (vbox), text, TRUE, TRUE, 0);
+        gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (text), GTK_WRAP_WORD_CHAR);
         gtk_text_view_set_justification (GTK_TEXT_VIEW (text),
                                          get_gtk_justification (ev_annotation_free_text_get_quadding (EV_ANNOTATION_FREE_TEXT (annot))));
 
-        ev_annotation_get_rgba (annot, &rgba);
-        gtk_widget_override_background_color (GTK_WIDGET (text), GTK_STATE_FLAG_NORMAL, &rgba);
-
-        /* Font */
-        pango_font = pango_font_description_new ();
+        /* Color */
+        ev_annotation_get_rgba (annot, &bg_rgba);
+        ev_annotation_free_text_get_font_color (EV_ANNOTATION_FREE_TEXT (annot), &fg_rgba);
 
         /* Scale font size according to zoom level */
         screen = gtk_widget_get_screen (GTK_WIDGET (view));
         zoom = view->scale / ev_document_misc_get_screen_dpi (screen) * 72.0;
-        size = ev_annotation_free_text_get_font_size (EV_ANNOTATION_FREE_TEXT (annot)) * zoom * PANGO_SCALE;
-        pango_font_description_set_size (pango_font, size);
+        size = ev_annotation_free_text_get_font_size (EV_ANNOTATION_FREE_TEXT (annot)) * zoom;
 
-        gtk_widget_override_font (GTK_WIDGET (text), pango_font);
-        pango_font_description_free (pango_font);
+        /* Margin needs to be calculated based on the border width of the annot */
+        ev_annotation_get_border (annot, &border);
+        border_size = border.width;
+        //border_size = border.width * zoom;
+        //border_size = (border_size < 1)? 1 : round (border_size);               //FIXME 0!!
+        printf ("The width of the border is : %f\n", border_size);
+        gtk_widget_set_margin_top (text, border_size);
+        gtk_widget_set_margin_bottom (text, border_size);
+        gtk_widget_set_margin_left (text, border_size);
+        gtk_widget_set_margin_right (text, border_size);
 
+        /* CSS */
+        // use a single string to provide to CSS provider for ALL The styling
+
+        gtk_widget_set_name (text, "FreeText");
+        css = g_strdup_printf ("#FreeText {background-color: rgb (%f, %f, %f); color: rgb (%f, %f, %f); font-size: %f""px;}",
+                               bg_rgba.red * 255, bg_rgba.green * 255, bg_rgba.blue * 255, fg_rgba.red * 255, fg_rgba.green * 255, fg_rgba.blue * 255, size);
+        //printf ("FreeText = %s\n",css);
+        css_provider = gtk_css_provider_new ();
+        gtk_css_provider_load_from_data (css_provider, css, some_length_function (css), NULL);
+        style_context = gtk_widget_get_style_context (GTK_WIDGET (text));
+        gtk_style_context_add_provider (style_context, GTK_STYLE_PROVIDER (css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+        g_free (css);
+        //TODO free stuff
+
+        gtk_widget_set_name (vbox, "FreeTextContainer");
+        css = g_strdup_printf ("#FreeTextContainer {border: %d""px %s rgb (%f, %f, %f);}",
+                               (guint) border_size, get_annot_border_style (&border), fg_rgba.red * 255, fg_rgba.green * 255, fg_rgba.blue * 255);
+        //css = g_strdup_printf ("#FreeTextContainer {border: %d""px solid red;}",
+        //                       (gint) border_size);
+        //printf ("FreeTextContainer = %s\n",css);
+        css_provider = gtk_css_provider_new ();
+        gtk_css_provider_load_from_data (css_provider, css, some_length_function (css), NULL);
+        style_context = gtk_widget_get_style_context (GTK_WIDGET (vbox));
+        gtk_style_context_add_provider (style_context, GTK_STYLE_PROVIDER (css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+        g_free (css);
+        //TODO free stuff
+
+        /* Contents */
         buffer = gtk_text_view_get_buffer (GTK_TEXT_VIEW (text));
 
         txt = ev_annotation_get_contents (annot);
@@ -3253,13 +3329,15 @@ ev_view_handle_annotation (EvView       *view,
                 case EV_ANNOTATION_TYPE_FREE_TEXT: {
                         EvMapping       *mapping;
                         GtkWidget       *text_widget;
+                        GtkWidget       *text_container;
                         gint             page;
 
                         text_widget = ev_view_annotation_free_text_create_widget (view, annot);
+                        text_container = gtk_widget_get_parent (text_widget);
 
                         mapping = get_annotation_mapping_at_location (view, x, y, &page);
-                        ev_view_put_to_doc_rect (view, text_widget, page, &mapping->area);
-                        gtk_widget_show (text_widget);
+                        ev_view_put_to_doc_rect (view, text_container, page, &mapping->area);
+                        gtk_widget_show_all (text_container);
                         gtk_widget_grab_focus (text_widget);
                 }
                 break;
@@ -4474,6 +4552,8 @@ draw_annotation_rectangle (EvView  *view,
         double dash_length = 5;
 
         get_positive_rectangle (&view->annot_rect, &draw_rect);
+        draw_rect.x -= (view->scroll_x);
+        draw_rect.y -= (view->scroll_y);
         cairo_save (cr);
         cairo_rectangle (cr, draw_rect.x,  draw_rect.y,
                          draw_rect.width, draw_rect.height);
@@ -5218,8 +5298,8 @@ annot_rect_update_idle_cb (EvView *view)
 
         /* Create the rectangle to be drawn */
         get_positive_rectangle (&view->annot_rect, &annot_rect);
-        annot_rect.x -= 2;
-        annot_rect.y -= 2;
+        annot_rect.x -= (view->scroll_x + 2);
+        annot_rect.y -= (view->scroll_y + 2);
         annot_rect.width  += 4;
         annot_rect.height += 4;
 
