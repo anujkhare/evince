@@ -49,6 +49,8 @@ gdouble              ev_annotation_properties_dialog_get_opacity         (EvAnno
 gboolean             ev_annotation_properties_dialog_get_popup_is_open   (EvAnnotationPropertiesDialog *dialog);
 EvAnnotationTextIcon ev_annotation_properties_dialog_get_text_icon       (EvAnnotationPropertiesDialog *dialog);
 const gchar         *ev_annotation_properties_dialog_get_font            (EvAnnotationPropertiesDialog *dialog);
+void                 ev_annotation_properties_dialog_get_font_color      (EvAnnotationPropertiesDialog *dialog,
+									  GdkRGBA                      *rgba);
 EvAnnotationFreeTextQuadding 
                      ev_annotation_properties_dialog_get_quadding        (EvAnnotationPropertiesDialog *dialog);
 void                 ev_annotation_properties_dialog_get_border          (EvAnnotationPropertiesDialog *dialog,

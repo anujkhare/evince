@@ -145,7 +145,7 @@ typedef enum {
 } EvAnnotationBorderStyle;
 
 struct _EvAnnotationBorder {
-        gdouble                 width;
+        guint                   width;
         EvAnnotationBorderStyle style;
 };
 
@@ -177,10 +177,10 @@ void                 ev_annotation_get_rgba                  (EvAnnotation      
                                                               GdkRGBA                *rgba);
 gboolean             ev_annotation_set_rgba                  (EvAnnotation           *annot,
                                                               const GdkRGBA          *rgba);
-void                 ev_annotation_get_border                (EvAnnotation             *annot,
-                                                              EvAnnotationBorder       *border);
-gboolean             ev_annotation_set_border                (EvAnnotation             *annot,
-                                                              const EvAnnotationBorder *border);
+void                 ev_annotation_get_border                (EvAnnotation           *annot,
+                                                              EvAnnotationBorder     *border);
+gboolean             ev_annotation_set_border                (EvAnnotation           *annot,
+                                                              EvAnnotationBorder     *border);
 
 /* EvAnnotationMarkup */
 GType                ev_annotation_markup_get_type           (void) G_GNUC_CONST;
@@ -217,6 +217,10 @@ EvAnnotation                  *ev_annotation_free_text_new             (EvPage  
 const gchar                   *ev_annotation_free_text_get_font_name   (EvAnnotationFreeText   *annot);
 gboolean                       ev_annotation_free_text_set_font_name   (EvAnnotationFreeText   *annot,
                                                                         const gchar            *font_name);
+void                           ev_annotation_free_text_get_font_color  (EvAnnotationFreeText   *annot,
+                                                                        GdkRGBA                *rgba);
+gboolean                       ev_annotation_free_text_set_font_color  (EvAnnotationFreeText   *annot,
+                                                                        const GdkRGBA          *rgba);
 gdouble                        ev_annotation_free_text_get_font_size   (EvAnnotationFreeText   *annot);
 gboolean                       ev_annotation_free_text_set_font_size   (EvAnnotationFreeText   *annot,
                                                                         gdouble                 font_size);

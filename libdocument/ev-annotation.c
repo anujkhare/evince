@@ -738,6 +738,8 @@ ev_annotation_set_border (EvAnnotation        *annot,
 
         ev_annotation_border_free (annot->border);
         annot->border = ev_annotation_border_copy (border);
+        
+        printf ("ev-annot width %d style %d\n", annot->border->width, annot->border->style);
 
 	g_object_notify (G_OBJECT (annot), "border");
 	return TRUE;
@@ -1442,6 +1444,7 @@ ev_annotation_free_text_set_font_color (EvAnnotationFreeText  *annot,
                 return FALSE;
 
         annot->font_color = *rgba;
+        printf ("set font color %f %f %f\n", rgba->red, rgba->blue, rgba->green);
         g_object_notify (G_OBJECT (annot), "font-color");
 
         return TRUE;

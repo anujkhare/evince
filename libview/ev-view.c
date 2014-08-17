@@ -4549,7 +4549,6 @@ draw_annotation_rectangle (EvView  *view,
                            cairo_t *cr)
 {
         GdkRectangle draw_rect;
-        double dash_length = 5;
 
         get_positive_rectangle (&view->annot_rect, &draw_rect);
         draw_rect.x -= (view->scroll_x);
@@ -4557,7 +4556,6 @@ draw_annotation_rectangle (EvView  *view,
         cairo_save (cr);
         cairo_rectangle (cr, draw_rect.x,  draw_rect.y,
                          draw_rect.width, draw_rect.height);
-        //cairo_set_dash (cr, &dash_length, 1, 0);
         cairo_stroke_preserve (cr);
         cairo_set_source_rgb (cr, 1, 1, 0);
         cairo_fill (cr);
