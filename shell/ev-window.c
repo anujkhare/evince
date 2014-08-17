@@ -6436,6 +6436,7 @@ ev_window_popup_cmd_annot_properties (GSimpleAction *action,
 		mask |= EV_ANNOTATIONS_SAVE_POPUP_IS_OPEN;
 
 	ev_annotation_properties_dialog_get_border (dialog, &border);
+        printf ("we got %d\n", border.width);
 	if (ev_annotation_set_border (annot, &border))
 		mask |= EV_ANNOTATIONS_SAVE_BORDER;
 
@@ -6453,16 +6454,22 @@ ev_window_popup_cmd_annot_properties (GSimpleAction *action,
                 PangoFontDescription         *pango_font;
                 const gchar                  *font;
                 gdouble                       font_size;
+                GdkRGBA                       font_color;
 
                 quadding = ev_annotation_properties_dialog_get_quadding (dialog);
-                font = ev_annotation_properties_dialog_get_font (dialog);
 
+                font = ev_annotation_properties_dialog_get_font (dialog);
                 pango_font = pango_font_description_from_string (font);
                 font_size = pango_font_description_get_size (pango_font)/ PANGO_SCALE,
+
+                ev_annotation_properties_dialog_get_font_color (dialog, &font_color);
 
                 annot_ftext = EV_ANNOTATION_FREE_TEXT (annot);
                 if (ev_annotation_free_text_set_font_size (annot_ftext, font_size))
                         mask |= EV_ANNOTATIONS_SAVE_FONT_SIZE;
+
+                if (ev_annotation_free_text_set_font_color (annot_ftext, &font_color))
+                        mask |= EV_ANNOTATIONS_SAVE_FONT_COLOR;
 
                 if (ev_annotation_free_text_set_quadding (annot_ftext, quadding))
                         mask |= EV_ANNOTATIONS_SAVE_QUADDING;

@@ -215,6 +215,7 @@ ev_sidebar_annotations_add_annots_palette (EvSidebarAnnotations *ev_annots)
 	gtk_tool_item_group_insert (GTK_TOOL_ITEM_GROUP (group), item, -1);
 	gtk_widget_show (GTK_WIDGET (item));
 
+//#ifdef POPPLER_ANNOT_FREE_TEXT_READY
         // FIXME: maybe restructure code to use loops and arrays..
 	item = gtk_toggle_tool_button_new ();
 	gtk_tool_button_set_icon_name (GTK_TOOL_BUTTON (item), GTK_STOCK_EDIT);
@@ -226,6 +227,7 @@ ev_sidebar_annotations_add_annots_palette (EvSidebarAnnotations *ev_annots)
 			  ev_annots);
 	gtk_tool_item_group_insert (GTK_TOOL_ITEM_GROUP (group), item, -1);
 	gtk_widget_show (GTK_WIDGET (item));
+//#endif
 
 	gtk_container_add (GTK_CONTAINER (swindow), ev_annots->priv->palette);
 	gtk_widget_show (ev_annots->priv->palette);
@@ -328,7 +330,7 @@ ev_sidebar_annotations_annot_added (EvSidebarAnnotations *sidebar_annots,
 	GtkToggleToolButton *toolbutton;
 
 	if (EV_IS_ANNOTATION (annot)) {
-		toolbutton = GTK_TOGGLE_TOOL_BUTTON (sidebar_annots->priv->annot_text_item);
+		toolbutton = GTK_TOGGLE_TOOL_BUTTON (sidebar_annots->priv->annot_free_text_item);
 		g_signal_handlers_block_by_func (toolbutton,
 						 ev_sidebar_annotations_text_annot_button_toggled,
 						 sidebar_annots);

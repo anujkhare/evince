@@ -693,16 +693,13 @@ ev_annotation_get_border (EvAnnotation       *annot,
         if (!annot->border)
                 return;
 
-        //TODO TODO TODO Think about border pointer or not, if not you can set width to 0 to remove it, but then 
-        // what when we have dashed pattern stored in the object.?
         *border = *annot->border;
 }
 
 static gboolean
-border_equal (const EvAnnotationBorder *a,
-              const EvAnnotationBorder *b)
+border_are_equal (const EvAnnotationBorder *a,
+                  const EvAnnotationBorder *b)
 {
-        //FIXME IMPROVE!
         if (a == b)
                 return TRUE;
 
@@ -733,7 +730,7 @@ ev_annotation_set_border (EvAnnotation        *annot,
 {
 	g_return_val_if_fail (EV_IS_ANNOTATION (annot), FALSE);
 
-        if (border_equal (border, annot->border) == TRUE)
+        if (border_are_equal (border, annot->border) == TRUE)
                 return FALSE;
 
         ev_annotation_border_free (annot->border);
@@ -1442,6 +1439,7 @@ ev_annotation_free_text_set_font_color (EvAnnotationFreeText  *annot,
                 return FALSE;
 
         annot->font_color = *rgba;
+        printf ("set font color %f %f %f\n", rgba->red, rgba->blue, rgba->green);
         g_object_notify (G_OBJECT (annot), "font-color");
 
         return TRUE;
