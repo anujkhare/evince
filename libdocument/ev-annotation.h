@@ -177,6 +177,10 @@ void                 ev_annotation_get_rgba                  (EvAnnotation      
                                                               GdkRGBA                *rgba);
 gboolean             ev_annotation_set_rgba                  (EvAnnotation           *annot,
                                                               const GdkRGBA          *rgba);
+void                 ev_annotation_get_bounding_rectangle    (EvAnnotation           *annot,
+                                                              EvRectangle            *rect);
+gboolean             ev_annotation_set_bounding_rectangle    (EvAnnotation           *annot,
+                                                              const EvRectangle      *rect);
 void                 ev_annotation_get_border                (EvAnnotation           *annot,
                                                               EvAnnotationBorder     *border);
 gboolean             ev_annotation_set_border                (EvAnnotation           *annot,

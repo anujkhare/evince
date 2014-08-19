@@ -2980,6 +2980,9 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		gchar   *name;
 		GdkColor color;
 		EvAnnotationBorder *border;
+		gdouble page_height;
+		EvRectangle ev_bound_rect;
+		PopplerRectangle poppler_rect;
 
 		contents = poppler_annot_get_contents (poppler_annot);
 		if (contents) {
@@ -3004,7 +3007,18 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		poppler_annot_color_to_gdk_color (poppler_annot, &color);
 		ev_annotation_set_color (ev_annot, &color);
 
-		border = get_ev_annotation_border_from_poppler_annot (poppler_annot);
+		poppler_page_get_size (POPPLER_PAGE (page->backend_page),
+				       NULL, &page_height);
+		poppler_annot_get_rectangle(poppler_annot, &poppler_rect);
+		ev_bound_rect.x1 = poppler_rect.x1;
+		ev_bound_rect.x2 = poppler_rect.x2;
+		ev_bound_rect.y1 = page_height - poppler_rect.y2;
+		ev_bound_rect.y2 = page_height - poppler_rect.y1;
+		g_object_set(ev_annot,
+		             "bounding-rectangle", &ev_bound_rect,
+		             NULL);
+
+		border = get_ev_annotation_border (poppler_annot);
 
 		ev_annotation_set_border (ev_annot, border);
 		ev_annotation_border_free (border);
@@ -3020,14 +3034,11 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			if (poppler_annot_markup_get_popup_rectangle (markup, &poppler_rect)) {
 				EvRectangle ev_rect;
 				gboolean is_open;
-				gdouble height;
 
-				poppler_page_get_size (POPPLER_PAGE (page->backend_page),
-						       NULL, &height);
 				ev_rect.x1 = poppler_rect.x1;
 				ev_rect.x2 = poppler_rect.x2;
-				ev_rect.y1 = height - poppler_rect.y2;
-				ev_rect.y2 = height - poppler_rect.y1;
+				ev_rect.y1 = page_height - poppler_rect.y2;
+				ev_rect.y2 = page_height - poppler_rect.y1;
 
 				is_open = poppler_annot_markup_get_popup_is_open (markup);
 
@@ -3105,10 +3116,7 @@ pdf_document_annotations_get_annotations (EvDocumentAnnotations *document_annota
 		}
 
 		annot_mapping = g_new (EvMapping, 1);
-		annot_mapping->area.x1 = mapping->area.x1;
-		annot_mapping->area.x2 = mapping->area.x2;
-		annot_mapping->area.y1 = height - mapping->area.y2;
-		annot_mapping->area.y2 = height - mapping->area.y1;
+		ev_annotation_get_bounding_rectangle(ev_annot, &annot_mapping->area);
 		annot_mapping->data = ev_annot;
 
 		g_object_set_data_full (G_OBJECT (ev_annot),
@@ -3214,14 +3222,11 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
                         break;
 
                 case EV_ANNOTATION_TYPE_FREE_TEXT: {
-                        EvAnnotationFreeText *ftext = EV_ANNOTATION_FREE_TEXT (annot);
-                        gdouble               font_size;
-                        PopplerColor         *poppler_color = NULL;
+                        EvAnnotationFreeText   *ftext = EV_ANNOTATION_FREE_TEXT (annot);
+                        gdouble                 font_size;
+                        GdkRGBA                 rgba;
                         PopplerFontDescription *poppler_font;
 
-                        //TODO
-                        font_size = ev_annotation_free_text_get_font_size (EV_ANNOTATION_FREE_TEXT (annot));
-                        //ev_annotation_free_text_get_font_color (EV_ANNOTATION_FREE_TEXT (annot), &color);
                         poppler_font = poppler_font_description_new ();
 
                         poppler_font->size = ev_annotation_free_text_get_font_size (EV_ANNOTATION_FREE_TEXT (annot));

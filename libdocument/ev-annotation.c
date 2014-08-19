@@ -35,6 +35,7 @@ struct _EvAnnotation {
 	gchar           *name;
 	gchar           *modified;
 	GdkRGBA          rgba;
+	EvRectangle      rect;
 	EvAnnotationBorder *border;
 };
 
@@ -95,6 +96,7 @@ enum {
 	PROP_ANNOT_MODIFIED,
 	PROP_ANNOT_COLOR,
 	PROP_ANNOT_RGBA,
+	PROP_ANNOT_BOUND_RECT,
 	PROP_ANNOT_BORDER
 };
 
@@ -213,6 +215,12 @@ ev_annotation_set_property (GObject      *object,
         case PROP_ANNOT_RGBA:
                 ev_annotation_set_rgba (annot, g_value_get_boxed (value));
                 break;
+        case PROP_ANNOT_BOUND_RECT:
+                ev_annotation_set_bounding_rectangle (annot, g_value_get_boxed (value));
+                break;
+        case PROP_ANNOT_BORDER:
+                ev_annotation_set_border (annot, g_value_get_pointer (value));
+                break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
 	}
@@ -245,6 +253,12 @@ ev_annotation_get_property (GObject    *object,
         }
         case PROP_ANNOT_RGBA:
                 g_value_set_boxed (value, &annot->rgba);
+                break;
+        case PROP_ANNOT_BOUND_RECT:
+                g_value_set_boxed (value, &annot->rect);
+                break;
+        case PROP_ANNOT_BORDER:
+                g_value_set_pointer (value, &annot->border);
                 break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -325,6 +339,22 @@ ev_annotation_class_init (EvAnnotationClass *klass)
                                          PROP_ANNOT_COLOR,
                                          g_param_spec_boxed ("rgba", NULL, NULL,
                                                              GDK_TYPE_RGBA,
+                                                             G_PARAM_READWRITE |
+                                                             G_PARAM_STATIC_STRINGS));
+
+        /**
+         * EvAnnotation:bounding-rectangle:
+         *
+         * The bounding rectangle of the annotation within the page as a #EvRectangle.
+         *
+         * Since: 3.6
+         */
+        g_object_class_install_property (g_object_class,
+                                         PROP_ANNOT_BOUND_RECT,
+                                         g_param_spec_boxed ("bounding-rectangle",
+                                                             "Bounding rectangle",
+                                                             "The bounding rectangle of the annotation",
+                                                             EV_TYPE_RECTANGLE,
                                                              G_PARAM_READWRITE |
                                                              G_PARAM_STATIC_STRINGS));
 }
@@ -670,6 +700,36 @@ ev_annotation_set_rgba (EvAnnotation  *annot,
         annot->rgba = *rgba;
         g_object_notify (G_OBJECT (annot), "rgba");
 	g_object_notify (G_OBJECT (annot), "color");
+
+        return TRUE;
+}
+
+//TODO docs
+void
+ev_annotation_get_bounding_rectangle (EvAnnotation *annot,
+				      EvRectangle  *rect)
+{
+	g_return_if_fail (EV_IS_ANNOTATION (annot));
+	g_return_if_fail (rect != NULL);
+
+	*rect = annot->rect;
+}
+
+gboolean
+ev_annotation_set_bounding_rectangle (EvAnnotation      *annot,
+				      const EvRectangle *rect)
+{
+	g_return_val_if_fail (EV_IS_ANNOTATION (annot), FALSE);
+	g_return_val_if_fail (rect != NULL, FALSE);
+
+	if (annot->rect.x1 == rect->x1 &&
+	    annot->rect.y1 == rect->y1 &&
+	    annot->rect.x2 == rect->x2 &&
+	    annot->rect.y2 == rect->y2)
+		return FALSE;
+
+        annot->rect = *rect;
+        g_object_notify (G_OBJECT (annot), "bounding_rectangle");
 
         return TRUE;
 }

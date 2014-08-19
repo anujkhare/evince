@@ -3438,6 +3438,8 @@ ev_view_create_annotation (EvView          *view,
 			      "opacity", 1.0,
 			      NULL);
 	}
+
+	ev_annotation_set_bounding_rectangle (annot, &doc_rect);
 	ev_document_annotations_add_annotation (EV_DOCUMENT_ANNOTATIONS (view->document),
 						annot, &doc_rect);
 	ev_document_doc_mutex_unlock ();
