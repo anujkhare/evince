@@ -2982,6 +2982,9 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		gchar   *name;
 		GdkColor color;
 		EvAnnotationBorder *border;
+		gdouble page_height;
+		EvRectangle ev_bound_rect;
+		PopplerRectangle poppler_rect;
 
 		contents = poppler_annot_get_contents (poppler_annot);
 		if (contents) {
@@ -3006,7 +3009,18 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		poppler_annot_color_to_gdk_color (poppler_annot, &color);
 		ev_annotation_set_color (ev_annot, &color);
 
-		border = get_ev_annotation_border_from_poppler_annot (poppler_annot);
+		poppler_page_get_size (POPPLER_PAGE (page->backend_page),
+				       NULL, &page_height);
+		poppler_annot_get_rectangle(poppler_annot, &poppler_rect);
+		ev_bound_rect.x1 = poppler_rect.x1;
+		ev_bound_rect.x2 = poppler_rect.x2;
+		ev_bound_rect.y1 = page_height - poppler_rect.y2;
+		ev_bound_rect.y2 = page_height - poppler_rect.y1;
+		g_object_set(ev_annot,
+		             "bounding-rectangle", &ev_bound_rect,
+		             NULL);
+
+		border = get_ev_annotation_border (poppler_annot);
                 printf ("ev poppler border width %d style %d\n", border->width, border->style);
 
 		ev_annotation_set_border (ev_annot, border);
@@ -3023,14 +3037,11 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			if (poppler_annot_markup_get_popup_rectangle (markup, &poppler_rect)) {
 				EvRectangle ev_rect;
 				gboolean is_open;
-				gdouble height;
 
-				poppler_page_get_size (POPPLER_PAGE (page->backend_page),
-						       NULL, &height);
 				ev_rect.x1 = poppler_rect.x1;
 				ev_rect.x2 = poppler_rect.x2;
-				ev_rect.y1 = height - poppler_rect.y2;
-				ev_rect.y2 = height - poppler_rect.y1;
+				ev_rect.y1 = page_height - poppler_rect.y2;
+				ev_rect.y2 = page_height - poppler_rect.y1;
 
 				is_open = poppler_annot_markup_get_popup_is_open (markup);
 
@@ -3108,10 +3119,7 @@ pdf_document_annotations_get_annotations (EvDocumentAnnotations *document_annota
 		}
 
 		annot_mapping = g_new (EvMapping, 1);
-		annot_mapping->area.x1 = mapping->area.x1;
-		annot_mapping->area.x2 = mapping->area.x2;
-		annot_mapping->area.y1 = height - mapping->area.y2;
-		annot_mapping->area.y2 = height - mapping->area.y1;
+		ev_annotation_get_bounding_rectangle(ev_annot, &annot_mapping->area);
 		annot_mapping->data = ev_annot;
 
 		g_object_set_data_full (G_OBJECT (ev_annot),
