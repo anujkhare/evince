@@ -2819,6 +2819,22 @@ get_poppler_annot_text_icon (EvAnnotationTextIcon icon)
 	}
 }
 
+static void
+poppler_color_to_gdk_rgba (PopplerColor *poppler_color,
+                           GdkRGBA      *rgba)
+{
+        if (poppler_color) {
+                rgba->red = (gdouble) poppler_color->red / 65535;
+                rgba->green = (gdouble) poppler_color->green / 65535;
+                rgba->blue = (gdouble) poppler_color->blue / 65535;
+        } else {
+                rgba->red = 0.0;
+                rgba->green = 0.0;
+                rgba->blue = 0.0;
+        }
+        rgba->alpha = 1.0;
+}
+
 static EvAnnotation *
 ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 			     EvPage       *page)
@@ -2845,12 +2861,15 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 	        case POPPLER_ANNOT_FREE_TEXT: {
 			PopplerAnnotFreeText   *poppler_ftext;
                         EvAnnotationFreeText   *ev_ftext;
+                        GdkRGBA                 rgba;
 
 			ev_annot = ev_annotation_free_text_new (page);
 
                         poppler_ftext = POPPLER_ANNOT_FREE_TEXT (poppler_annot);
                         ev_ftext = EV_ANNOTATION_FREE_TEXT (ev_annot);
 
+                        poppler_color_to_gdk_rgba (poppler_annot_free_text_get_font_color (poppler_ftext), &rgba);
+                        ev_annotation_free_text_set_font_color (ev_ftext, &rgba);
                         ev_annotation_free_text_set_font_size (ev_ftext, poppler_annot_free_text_get_font_size (poppler_ftext));
                         ev_annotation_free_text_set_quadding (ev_ftext,
                                                               (EvAnnotationFreeTextQuadding)poppler_annot_free_text_get_quadding (poppler_ftext));
