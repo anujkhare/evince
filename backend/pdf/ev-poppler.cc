@@ -3382,8 +3382,6 @@ pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annota
                         ev_annotation_free_text_get_font_color (ev_ftext, &ev_rgba);
                         poppler_color = create_poppler_color_from_gdk_rgba (&ev_rgba);
 		        poppler_annot_free_text_set_font_color (poppler_ftext, poppler_color);
-                        poppler_annot_free_text_set_font_size (poppler_ftext,
-                                                               ev_annotation_free_text_get_font_size (ev_ftext));
                 }
 
                 if (mask & EV_ANNOTATIONS_SAVE_QUADDING) {
