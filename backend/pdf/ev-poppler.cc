@@ -3319,6 +3319,16 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 	pdf_document->annots_modified = TRUE;
 }
 
+static gint
+find_annot_mapping_by_name (EvMapping *annot_mapping,
+                            gchar     *name)
+{
+        const gchar *item_name;
+
+        item_name = ev_annotation_get_name (EV_ANNOTATION (annot_mapping->data));
+        return strcmp (item_name, name);
+}
+
 static void
 pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annotations,
 					  EvAnnotation          *annot,
@@ -3329,6 +3339,46 @@ pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annota
 	poppler_annot = POPPLER_ANNOT (g_object_get_data (G_OBJECT (annot), "poppler-annot"));
 	if (!poppler_annot)
 		return;
+
+        if (mask & EV_ANNOTATIONS_SAVE_RECTANGLE) {
+                printf ("EvPoppler - update annot rect\n");
+                //TODO: some_helper_function, common with add annotation?
+	        PdfDocument     *pdf_document;
+	        EvPage          *page;
+	        PopplerPage     *poppler_page;
+	        EvRectangle      rect;
+	        PopplerRectangle poppler_rect;
+	        gdouble          height;
+	        const gchar     *name;
+	        EvMappingList   *mapping_list;
+	        EvMapping       *annot_mapping;
+	        GList           *list;
+	        GList           *l;
+
+	        pdf_document = PDF_DOCUMENT (document_annotations);
+	        page = ev_annotation_get_page (annot);
+	        poppler_page = POPPLER_PAGE (page->backend_page);
+
+	        poppler_page_get_size (poppler_page, NULL, &height);
+	        ev_annotation_get_bounding_rectangle (annot, &rect);
+	        poppler_rect.x1 = rect.x1;
+	        poppler_rect.x2 = rect.x2;
+	        poppler_rect.y1 = height - rect.y2;
+	        poppler_rect.y2 = height - rect.y1;
+
+	        poppler_annot_set_rectangle (poppler_annot, &poppler_rect);
+
+		/* Update the annotation mapping */
+		/* Since we are moving the annotation, mapping list must exist. */
+		name = ev_annotation_get_name (annot);
+
+		mapping_list = (EvMappingList *)g_hash_table_lookup (pdf_document->annots,
+								     GINT_TO_POINTER (page->index));
+		list = ev_mapping_list_get_list (mapping_list);
+		l = g_list_find_custom (list, name, (GCompareFunc)find_annot_mapping_by_name);
+		annot_mapping = (EvMapping *)l->data;
+		annot_mapping->area = rect;
+        }
 
 	if (mask & EV_ANNOTATIONS_SAVE_CONTENTS)
 		poppler_annot_set_contents (poppler_annot,

@@ -107,6 +107,14 @@ typedef struct _EvHeightToPageCache {
 	gdouble *dual_height_to_page;
 } EvHeightToPageCache;
 
+
+typedef enum {
+        EV_VIEW_ANNOT_ADD,
+        EV_VIEW_ANNOT_MOVE,
+        EV_VIEW_ANNOT_RESIZE,
+        EV_VIEW_ANNOT_NONE
+} EvViewAnnotInteraction;
+
 struct _EvView {
 	GtkContainer layout;
 
@@ -200,11 +208,17 @@ struct _EvView {
 	/* Annotations */
 	GList             *window_children;
 	EvViewWindowChild *window_child_focus;
-	gboolean           adding_annot;
-	EvAnnotationType   adding_annot_type;
+
+        EvViewAnnotInteraction annot_interaction;
+
+	EvAnnotationType   adding_annot_type;           //needed for adding the annotation
+        //FIXME: since we use the same for moving and resizing, maybe have 2 EvPoints :P
 	GdkRectangle       annot_rect;
 	GdkRectangle       annot_rect_prev;
 	guint              annot_rect_update_id;
+	GdkPoint           start, end;
+
+        EvAnnotation      *current_annot;                       //for moving
 
 	/* Focus */
 	EvMapping *focused_element;

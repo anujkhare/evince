@@ -107,6 +107,8 @@ typedef struct {
 #define EV_STYLE_CLASS_DOCUMENT_PAGE "document-page"
 #define EV_STYLE_CLASS_INVERTED      "inverted"
 
+#define MOVE_RESOLUTION 0.0005
+
 /*** Scrolling ***/
 static void       view_update_range_and_current_page         (EvView             *view);
 static void       ensure_rectangle_is_visible                (EvView             *view,
@@ -2052,7 +2054,8 @@ ev_view_handle_cursor_over_xy (EvView *view, gint x, gint y)
 	if (view->cursor == EV_VIEW_CURSOR_HIDDEN)
 		return;
 
-	if (view->adding_annot) {
+	//if (view->adding_annot) {
+	if (view->annot_interaction == EV_VIEW_ANNOT_ADD) {
 		if (view->cursor != EV_VIEW_CURSOR_ADD)
 			ev_view_set_cursor (view, EV_VIEW_CURSOR_ADD);
 		return;
@@ -3486,10 +3489,12 @@ ev_view_begin_add_annotation (EvView          *view,
 	if (annot_type == EV_ANNOTATION_TYPE_UNKNOWN)
 		return;
 
-	if (view->adding_annot)
+	//if (view->adding_annot)
+	if (view->annot_interaction == EV_VIEW_ANNOT_ADD)
 		return;
 
-	view->adding_annot = TRUE;
+	view->annot_interaction = EV_VIEW_ANNOT_ADD;
+	//view->adding_annot = TRUE;
 	view->adding_annot_type = annot_type;
 	ev_view_set_cursor (view, EV_VIEW_CURSOR_ADD);
 }
@@ -3499,10 +3504,10 @@ ev_view_cancel_add_annotation (EvView *view)
 {
 	gint x, y;
 
-	if (!view->adding_annot)
+	if (!view->annot_interaction == EV_VIEW_ANNOT_ADD)
 		return;
 
-	view->adding_annot = FALSE;
+	view->annot_interaction = EV_VIEW_ANNOT_NONE;
 	ev_document_misc_get_pointer_position (GTK_WIDGET (view), &x, &y);
 	ev_view_handle_cursor_over_xy (view, x, y);
 }
@@ -4550,6 +4555,31 @@ draw_debug_borders (EvView       *view,
 }
 #endif
 
+/* TODO:kcm: structure properly and substitute common helpers for all drawings
+ */ 
+
+static void
+draw_annotation_resize_box (EvView  *view,
+                            cairo_t *cr)
+{
+        /* This is going to much more complex than drawing just one box! */
+        GdkRectangle draw_rect;
+        gdouble      dash = 2;
+
+        draw_rect = view->annot_rect;
+        draw_rect.x -= view->scroll_x;
+        draw_rect.y -= view->scroll_y;
+        cairo_save (cr);
+        cairo_set_line_width (cr, 1.0);
+        cairo_set_source_rgb (cr, 0, 0, 0);
+        cairo_set_dash (cr, &dash, 1, 0);
+        cairo_rectangle (cr, draw_rect.x,  draw_rect.y,
+                         draw_rect.width, draw_rect.height);
+        cairo_stroke (cr);
+        cairo_restore (cr);
+}
+
+/* Modify to draw required shape for different annots */
 static void
 draw_annotation_rectangle (EvView  *view,
                            cairo_t *cr)
@@ -4602,8 +4632,12 @@ ev_view_draw (GtkWidget *widget,
 
 		draw_one_page (view, i, cr, &page_area, &border, &clip_rect, &page_ready);
 
-		if (page_ready && view->adding_annot)
-		        draw_annotation_rectangle (view, cr);
+		if (page_ready && view->annot_interaction == EV_VIEW_ANNOT_ADD)
+                        draw_annotation_rectangle (view, cr);
+                if (page_ready && view->annot_interaction == EV_VIEW_ANNOT_RESIZE)
+		        draw_annotation_resize_box (view, cr);
+                if (page_ready && view->annot_interaction == EV_VIEW_ANNOT_MOVE)
+                        draw_annotation_resize_box (view, cr);
 		if (page_ready && should_draw_caret_cursor (view, i))
 			draw_caret_cursor (view, cr);
 		if (page_ready && view->find_pages && view->highlight_find_results)
@@ -4972,6 +5006,55 @@ position_caret_cursor_for_event (EvView         *view,
 	return TRUE;
 }
 
+#define ANNOT_RESIZE_BOX_MARGIN 1
+static void
+annot_resize_box_invalidate_region (EvView       *view,
+                                    EvAnnotation *annot)
+{
+        cairo_region_t *redraw_region = NULL;
+        EvRectangle     bounding_rect;
+        GdkRectangle    view_rect;
+
+        ev_annotation_get_bounding_rectangle (annot, &bounding_rect);
+        /* FIXME: current page will go wrong in cont mode with 2 pages visible */
+	_ev_view_transform_doc_rect_to_view_rect (view, view->current_page, &bounding_rect, &view_rect);
+
+        /* Rectangle to draw */
+        view_rect.x -= ANNOT_RESIZE_BOX_MARGIN;
+        view_rect.y -= ANNOT_RESIZE_BOX_MARGIN;
+        view_rect.width  += 2 * ANNOT_RESIZE_BOX_MARGIN;
+        view_rect.height += 2 * ANNOT_RESIZE_BOX_MARGIN;
+        view->annot_rect = view_rect;
+
+        /* Redraw a slightly bigger rectangle */
+        view_rect.x -= ANNOT_RESIZE_BOX_MARGIN;
+        view_rect.y -= ANNOT_RESIZE_BOX_MARGIN;
+        view_rect.width  += 2 * ANNOT_RESIZE_BOX_MARGIN;
+        view_rect.height += 2 * ANNOT_RESIZE_BOX_MARGIN;
+        view_rect.x -= view->scroll_x;
+        view_rect.y -= view->scroll_y;
+        redraw_region = cairo_region_create_rectangle (&view_rect);
+
+        gdk_window_invalidate_region (gtk_widget_get_window (GTK_WIDGET (view)), redraw_region, TRUE);
+}
+
+static void
+ev_view_annotation_remove_resize_mode (EvView *view)
+{
+        view->annot_interaction = EV_VIEW_ANNOT_NONE;
+        annot_resize_box_invalidate_region (view, view->current_annot);
+        view->current_annot = NULL;
+}
+
+static void
+ev_view_annotation_set_resize_mode (EvView       *view,
+                                    EvAnnotation *annot)
+{
+        view->annot_interaction = EV_VIEW_ANNOT_RESIZE;
+        view->current_annot = annot;
+        annot_resize_box_invalidate_region (view, annot);
+}
+
 static gboolean
 ev_view_button_press_event (GtkWidget      *widget,
 			    GdkEventButton *event)
@@ -4999,20 +5082,60 @@ ev_view_button_press_event (GtkWidget      *widget,
 	if (view->scroll_info.autoscrolling)
 		return TRUE;
 
+        /* On button release move annotation if dragged, otherwise, handle */
+        if (event->type == GDK_2BUTTON_PRESS) {
+		EvAnnotation *annot = NULL;
+
+                annot = ev_view_get_annotation_at_location (view, event->x, event->y);
+                if (annot) {
+                        /* view->annot_rect is set when resize box is drawn on button_press */
+                        view->annot_rect.x += view->scroll_x;
+                        view->annot_rect.y += view->scroll_y;
+                        view->start.x = event->x + view->scroll_x;
+                        view->start.y = event->y + view->scroll_y;
+                        view->end = view->start;
+
+                        view->annot_rect_prev = view->annot_rect;
+                        view->annot_interaction = EV_VIEW_ANNOT_MOVE;
+                }
+                
+                return FALSE;
+        }
+
 	switch (event->button) {
 	        case 1: {
 			EvImage *image;
-			EvAnnotation *annot;
+			EvAnnotation *annot = NULL;
 			EvFormField *field;
 			EvMapping *link;
 			gint page;
 
-                        if (view->adding_annot) {
+                        if (view->annot_interaction == EV_VIEW_ANNOT_ADD) {
                                 view->annot_rect_prev.x = view->annot_rect.x = event->x + view->scroll_x;
                                 view->annot_rect_prev.y = view->annot_rect.y = event->y + view->scroll_y;
                                 view->annot_rect_prev.width  = view->annot_rect.width = 0;
                                 view->annot_rect_prev.height = view->annot_rect.height = 0;
                                 return FALSE;
+                        }
+
+                        annot = ev_view_get_annotation_at_location (view, event->x, event->y);
+                        if (view->annot_interaction == EV_VIEW_ANNOT_RESIZE) {
+                                /* Check for POIs, and remove this mode if clicked not on them */
+                                // for now just checking for annot, later, you need to include the box drawn
+			        if (!annot) {
+				        /* Remove resize box if clicked outside any annot */
+                                        ev_view_annotation_remove_resize_mode (view);
+                                } else if (annot == view->current_annot) {
+                                        /* Resize stuff should happen here */
+
+                                } else {
+                                        /* Change the annot on which the box is drawn */
+                                        ev_view_annotation_remove_resize_mode (view);
+                                        ev_view_annotation_set_resize_mode (view, annot);
+                                }
+                        } else if (annot) {
+				        /* Single click: Go to resize mode */
+                                        ev_view_annotation_set_resize_mode (view, annot);
                         }
 
 			if (event->state & GDK_CONTROL_MASK)
@@ -5038,13 +5161,16 @@ ev_view_button_press_event (GtkWidget      *widget,
 						ev_view_pend_cursor_blink (view);
 					}
 				}
-			} else if ((annot = ev_view_get_annotation_at_location (view, event->x, event->y))) {
-				ev_view_handle_annotation (view, annot, event->x, event->y, event->time);
 			} else if ((field = ev_view_get_form_field_at_location (view, event->x, event->y))) {
 				ev_view_remove_all (view);
 				ev_view_handle_form_field (view, field);
 			} else if ((link = get_link_mapping_at_location (view, event->x, event->y, &page))){
 				_ev_view_set_focused_element (view, link, page);
+			//} else if ((annot = ev_view_get_annotation_at_location (view, event->x, event->y))) {
+			//	/* Single click: Go to resize mode */
+                        //        view->annot_interaction = EV_VIEW_ANNOT_RESIZE;
+                        //        printf ("SINGLE CLICK - RESIZE MODE\n");
+                        //        //TODO:kcm: draw_annot_resize_box;
 			} else if (!location_in_text (view, event->x + view->scroll_x, event->y + view->scroll_y) &&
 				   (image = ev_view_get_image_at_location (view, event->x, event->y))) {
 				if (view->image_dnd_info.image)
@@ -5388,9 +5514,22 @@ ev_view_motion_notify_event (GtkWidget      *widget,
 	
 	switch (view->pressed_button) {
 	case 1:
-                if (view->adding_annot) {
+                if (view->annot_interaction == EV_VIEW_ANNOT_ADD) {
                         view->annot_rect.width  = (event->x + view->scroll_x) - view->annot_rect.x;
                         view->annot_rect.height = (event->y + view->scroll_y) - view->annot_rect.y;
+                        if (!view->annot_rect_update_id)
+                                view->annot_rect_update_id = g_idle_add ((GSourceFunc) annot_rect_update_idle_cb, view);
+                        return TRUE;
+                }
+
+                if (view->annot_interaction == EV_VIEW_ANNOT_MOVE) {
+                        view->annot_rect.x += (event->x + view->scroll_x - view->end.x);
+                        view->annot_rect.y += (event->y + view->scroll_y - view->end.y);
+
+                        //TODO: ensure that rect is inside the page bounds
+                        view->end.x = (event->x + view->scroll_x);
+                        view->end.y = (event->y + view->scroll_y);
+
                         if (!view->annot_rect_update_id)
                                 view->annot_rect_update_id = g_idle_add ((GSourceFunc) annot_rect_update_idle_cb, view);
                         return TRUE;
@@ -5522,8 +5661,8 @@ ev_view_button_release_event (GtkWidget      *widget,
 	        g_source_remove (view->annot_rect_update_id);
 	        view->annot_rect_update_id = 0;
        }
-	if (view->adding_annot && view->pressed_button == 1) {
-		view->adding_annot = FALSE;
+	if (view->annot_interaction == EV_VIEW_ANNOT_ADD && view->pressed_button == 1) {
+		view->annot_interaction = EV_VIEW_ANNOT_NONE;
 		ev_view_handle_cursor_over_xy (view, event->x, event->y);
 		view->pressed_button = -1;
 
@@ -5533,6 +5672,36 @@ ev_view_button_release_event (GtkWidget      *widget,
 
 		return FALSE;
 	}
+	if (view->annot_interaction == EV_VIEW_ANNOT_MOVE) {
+                gdouble dx, dy;
+                //cairo_region_t *region = NULL;
+                /* We want to have resize grid drawn after moving annot */
+                view->annot_interaction = EV_VIEW_ANNOT_NONE;
+
+                dx = view->end.x - view->start.x;
+                dy = view->end.y - view->start.y;
+
+                /* Move only if there is some translation, otherwise just handle annot */
+                if (abs (dx) > MOVE_RESOLUTION || abs (dy) > MOVE_RESOLUTION) {
+                        printf ("move is done'!\n");
+	                GdkRectangle    page_area;
+	                GtkBorder       border;
+	                EvRectangle     doc_rect;
+
+	                ev_view_get_page_extents (view, view->current_page, &page_area, &border);
+                        _ev_view_transform_view_rect_to_doc_rect (view, &view->annot_rect, &page_area, &border, &doc_rect);
+
+                        if (ev_annotation_set_bounding_rectangle (view->current_annot, &doc_rect))
+	                        ev_document_annotations_save_annotation (EV_DOCUMENT_ANNOTATIONS (view->document),
+	                        					 view->current_annot, EV_ANNOTATIONS_SAVE_RECTANGLE);
+                        ev_view_reload_page (view, view->current_page, NULL);
+                        //region = ev_view_annotation_get_region (view, view->current_annot);
+                        //ev_view_reload_page (view, view->current_page, region);
+                        //cairo_region_destroy (region);
+                } else {
+	                ev_view_handle_annotation (view, view->current_annot, event->x, event->y, event->time);
+                }
+        }
 
 	if (view->pressed_button == 2) {
 		ev_view_handle_cursor_over_xy (view, event->x, event->y);
@@ -7352,6 +7521,7 @@ ev_view_init (EvView *view)
 	view->pixbuf_cache_size = DEFAULT_PIXBUF_CACHE_SIZE;
 	view->caret_enabled = FALSE;
 	view->cursor_page = 0;
+        view->annot_interaction = EV_VIEW_ANNOT_NONE;
 
 	g_signal_connect (view, "notify::scale-factor",
 			  G_CALLBACK (on_notify_scale_factor), NULL);
