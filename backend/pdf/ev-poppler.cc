@@ -3020,8 +3020,7 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		             "bounding-rectangle", &ev_bound_rect,
 		             NULL);
 
-		border = get_ev_annotation_border (poppler_annot);
-                printf ("ev poppler border width %d style %d\n", border->width, border->style);
+		border = get_ev_annotation_border_from_poppler_annot (poppler_annot);
 
 		ev_annotation_set_border (ev_annot, border);
 		ev_annotation_border_free (border);
