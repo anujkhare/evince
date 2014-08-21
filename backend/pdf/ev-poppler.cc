@@ -3006,7 +3006,7 @@ ev_annot_from_poppler_annot (PopplerAnnot *poppler_annot,
 		poppler_annot_color_to_gdk_color (poppler_annot, &color);
 		ev_annotation_set_color (ev_annot, &color);
 
-		border = get_ev_annotation_border (poppler_annot);
+		border = get_ev_annotation_border_from_poppler_annot (poppler_annot);
                 printf ("ev poppler border width %d style %d\n", border->width, border->style);
 
 		ev_annotation_set_border (ev_annot, border);
@@ -3161,6 +3161,21 @@ create_poppler_color_from_gdk_rgba (GdkRGBA *rgba)
 }
 
 static void
+set_poppler_annot_border_from_ev_annotation (PopplerAnnot *poppler_annot,
+                                             EvAnnotation *annot)
+{
+        EvAnnotationBorder ev_border;
+        PopplerAnnotBorder poppler_border;
+
+        ev_annotation_get_border (annot, &ev_border);
+        poppler_border.width = ev_border.width;
+        poppler_border.style = PopplerAnnotBorderStyle (ev_border.style);
+
+        poppler_annot_set_border (poppler_annot, &poppler_border);
+}
+
+
+static void
 pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotations,
 					 EvAnnotation          *annot,
 					 EvRectangle           *rect)
@@ -3231,6 +3246,7 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 	poppler_color.green = color.green;
 	poppler_color.blue = color.blue;
 	poppler_annot_set_color (poppler_annot, &poppler_color);
+        set_poppler_annot_border_from_ev_annotation (poppler_annot, annot);
 
 	if (EV_IS_ANNOTATION_MARKUP (annot)) {
 		EvAnnotationMarkup *markup = EV_ANNOTATION_MARKUP (annot);
@@ -3296,14 +3312,6 @@ pdf_document_annotations_add_annotation (EvDocumentAnnotations *document_annotat
 }
 
 static void
-ev_border_to_poppler_border (EvAnnotationBorder *ev_border,
-                             PopplerAnnotBorder *poppler_border)
-{
-        poppler_border->width = ev_border->width;
-        poppler_border->style = PopplerAnnotBorderStyle (ev_border->style);
-}
-
-static void
 pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annotations,
 					  EvAnnotation          *annot,
 					  EvAnnotationsSaveMask  mask)
@@ -3329,14 +3337,8 @@ pdf_document_annotations_save_annotation (EvDocumentAnnotations *document_annota
 		poppler_annot_set_color (poppler_annot, &color);
 	}
 
-	if (mask & EV_ANNOTATIONS_SAVE_BORDER) {
-		EvAnnotationBorder ev_border;
-		PopplerAnnotBorder poppler_border;
-
-		ev_annotation_get_border (annot, &ev_border);
-                ev_border_to_poppler_border (&ev_border, &poppler_border);
-		poppler_annot_set_border (poppler_annot, &poppler_border);
-	}
+	if (mask & EV_ANNOTATIONS_SAVE_BORDER)
+                set_poppler_annot_border_from_ev_annotation (poppler_annot, annot);
 
 	if (EV_IS_ANNOTATION_MARKUP (annot)) {
 		EvAnnotationMarkup *ev_markup = EV_ANNOTATION_MARKUP (annot);

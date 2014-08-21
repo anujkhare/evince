@@ -159,6 +159,7 @@ ev_annotation_properties_dialog_constructed (GObject *object)
                 gtk_widget_show (dialog->quadding);
 
                 /* Border Width */
+                /* FIXME: This should be a property of multiple annotations */
 	        label = gtk_label_new (_("Border Width:"));
 	        gtk_misc_set_alignment (GTK_MISC (label), 0., 0.5);
 	        gtk_grid_attach (GTK_GRID (grid), label, 0, 8, 1, 1);

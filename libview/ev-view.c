@@ -3388,6 +3388,7 @@ ev_view_create_annotation (EvView          *view,
 	GdkColor        color = { 0, 65535, 65535, 0 };
 	GdkRectangle    view_rect;
 	cairo_region_t *region;
+	EvAnnotationBorder annot_border;
 
 	get_positive_rectangle (&annot_rect, &view_rect);
 
@@ -3419,6 +3420,9 @@ ev_view_create_annotation (EvView          *view,
 	g_object_unref (page);
 
 	ev_annotation_set_color (annot, &color);
+	annot_border.width = 1;
+	annot_border.style = EV_ANNOTATION_BORDER_STYLE_SOLID;
+	ev_annotation_set_border (annot, &annot_border);
 
 	if (EV_IS_ANNOTATION_MARKUP (annot) &&
             ev_annotation_markup_has_popup (EV_ANNOTATION_MARKUP (annot))) {
