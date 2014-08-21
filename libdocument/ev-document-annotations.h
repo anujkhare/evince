@@ -44,27 +44,28 @@ typedef enum {
 	EV_ANNOTATIONS_SAVE_NONE          = 0,
 	EV_ANNOTATIONS_SAVE_CONTENTS      = 1 << 0,
 	EV_ANNOTATIONS_SAVE_COLOR         = 1 << 1,
+        EV_ANNOTATIONS_SAVE_BORDER        = 1 << 2,
 
 	/* Markup Annotations */
-	EV_ANNOTATIONS_SAVE_LABEL         = 1 << 2,
-	EV_ANNOTATIONS_SAVE_OPACITY       = 1 << 3,
-	EV_ANNOTATIONS_SAVE_POPUP_RECT    = 1 << 4,
-	EV_ANNOTATIONS_SAVE_POPUP_IS_OPEN = 1 << 5,
+	EV_ANNOTATIONS_SAVE_LABEL         = 1 << 3,
+	EV_ANNOTATIONS_SAVE_OPACITY       = 1 << 4,
+	EV_ANNOTATIONS_SAVE_POPUP_RECT    = 1 << 5,
+	EV_ANNOTATIONS_SAVE_POPUP_IS_OPEN = 1 << 6,
 
 	/* Text Annotations */
-	EV_ANNOTATIONS_SAVE_TEXT_IS_OPEN  = 1 << 6,
-	EV_ANNOTATIONS_SAVE_TEXT_ICON     = 1 << 7,
+	EV_ANNOTATIONS_SAVE_TEXT_IS_OPEN  = 1 << 7,
+	EV_ANNOTATIONS_SAVE_TEXT_ICON     = 1 << 8,
 
 	/* Attachment Annotations */
-	EV_ANNOTATIONS_SAVE_ATTACHMENT    = 1 << 7,
+	EV_ANNOTATIONS_SAVE_ATTACHMENT    = 1 << 8,
 
 	/* Text Annotations */
-        EV_ANNOTATIONS_SAVE_FONT_SIZE     = 1 << 9,
-        EV_ANNOTATIONS_SAVE_FONT_COLOR    = 1 << 10,
-        EV_ANNOTATIONS_SAVE_QUADDING      = 1 << 11,
+        EV_ANNOTATIONS_SAVE_FONT_SIZE     = 1 << 10,
+        EV_ANNOTATIONS_SAVE_FONT_COLOR    = 1 << 11,
+        EV_ANNOTATIONS_SAVE_QUADDING      = 1 << 12,
 
 	/* Save all */
-	EV_ANNOTATIONS_SAVE_ALL           = (1 << 12) - 1
+	EV_ANNOTATIONS_SAVE_ALL           = (1 << 13) - 1
 } EvAnnotationsSaveMask;
 
 typedef struct _EvDocumentAnnotations          EvDocumentAnnotations;

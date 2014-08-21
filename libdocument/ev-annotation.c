@@ -35,6 +35,7 @@ struct _EvAnnotation {
 	gchar           *name;
 	gchar           *modified;
 	GdkRGBA          rgba;
+	EvAnnotationBorder *border;
 };
 
 struct _EvAnnotationClass {
@@ -61,6 +62,7 @@ struct _EvAnnotationFreeText {
 
         gchar                        *font_name;
         gdouble                       font_size;
+        GdkRGBA                       font_color;
         EvAnnotationFreeTextQuadding  quadding;
         EvAnnotationFreeTextIntent    intent;
 };
@@ -92,7 +94,8 @@ enum {
 	PROP_ANNOT_NAME,
 	PROP_ANNOT_MODIFIED,
 	PROP_ANNOT_COLOR,
-        PROP_ANNOT_RGBA
+	PROP_ANNOT_RGBA,
+	PROP_ANNOT_BORDER
 };
 
 /* EvAnnotationMarkup */
@@ -115,6 +118,7 @@ enum {
 enum {
         PROP_FREE_TEXT_FONT_NAME = PROP_MARKUP_POPUP_IS_OPEN + 1,
         PROP_FREE_TEXT_FONT_SIZE,
+        PROP_FREE_TEXT_FONT_COLOR,
         PROP_FREE_TEXT_INTENT,
         PROP_FREE_TEXT_QUADDING
 };
@@ -166,6 +170,11 @@ ev_annotation_finalize (GObject *object)
         if (annot->modified) {
                 g_free (annot->modified);
                 annot->modified = NULL;
+        }
+
+        if (annot->border) {
+                g_free (annot->border);
+                annot->border = NULL;
         }
 
         G_OBJECT_CLASS (ev_annotation_parent_class)->finalize (object);
@@ -283,6 +292,13 @@ ev_annotation_class_init (EvAnnotationClass *klass)
 							      NULL,
 							      G_PARAM_READWRITE |
                                                               G_PARAM_STATIC_STRINGS));
+	g_object_class_install_property (g_object_class,
+					 PROP_ANNOT_BORDER,
+					 g_param_spec_pointer ("border",
+							       "Border",
+							       "The annotation border",
+							       G_PARAM_READWRITE |
+							       G_PARAM_STATIC_STRINGS));
         /**
          * EvAnnotation:color:
          *
@@ -656,6 +672,75 @@ ev_annotation_set_rgba (EvAnnotation  *annot,
 	g_object_notify (G_OBJECT (annot), "color");
 
         return TRUE;
+}
+
+/**
+ * ev_annotation_get_border:
+ * @annot: an #EvAnnotation
+ *
+ * Get the border of @annot.
+ *
+ * Returns: a #EvAnnotationBorder with the border of the annotation or
+ * %NULL if @annot has no border.
+ */
+void
+ev_annotation_get_border (EvAnnotation       *annot,
+			  EvAnnotationBorder *border)
+{
+	g_return_if_fail (EV_IS_ANNOTATION (annot));
+        g_return_if_fail (border != NULL);
+
+        if (!annot->border)
+                return;
+
+        //TODO TODO TODO Think about border pointer or not, if not you can set width to 0 to remove it, but then 
+        // what when we have dashed pattern stored in the object.?
+        *border = *annot->border;
+}
+
+static gboolean
+border_equal (const EvAnnotationBorder *a,
+              const EvAnnotationBorder *b)
+{
+        //FIXME IMPROVE!
+        if (a == b)
+                return TRUE;
+
+        if (a == NULL || b == NULL)
+                return FALSE;
+
+        if (a->width == b->width &&
+            a->style == b->style)
+                return TRUE;
+
+        return FALSE;
+}
+
+/**
+ * ev_annotation_set_border:
+ * @annot: an #EvAnnotation
+ * @border: (allow-none): an #EvAnnotationBorder
+ *
+ * Set the border of @annot. You can monitor
+ * changes in the annotation's  border by connecting to
+ * notify::border signal of @annot.
+ *
+ * Returns: %TRUE if the border have been changed, %FALSE otherwise.
+ */
+gboolean
+ev_annotation_set_border (EvAnnotation        *annot,
+			  EvAnnotationBorder  *border)
+{
+	g_return_val_if_fail (EV_IS_ANNOTATION (annot), FALSE);
+
+        if (border_equal (border, annot->border) == TRUE)
+                return FALSE;
+
+        ev_annotation_border_free (annot->border);
+        annot->border = ev_annotation_border_copy (border);
+
+	g_object_notify (G_OBJECT (annot), "border");
+	return TRUE;
 }
 
 /* EvAnnotationMarkup */
@@ -1164,6 +1249,9 @@ ev_annotation_free_text_set_property (GObject      *object,
         case PROP_FREE_TEXT_FONT_SIZE:
                 ev_annotation_free_text_set_font_size (annot, g_value_get_double (value));
                 break;
+        case PROP_FREE_TEXT_FONT_COLOR:
+                ev_annotation_free_text_set_font_color (annot, g_value_get_boxed (value));
+                break;
         case PROP_FREE_TEXT_QUADDING:
                 ev_annotation_free_text_set_quadding (annot, g_value_get_enum (value));
                 break;
@@ -1195,6 +1283,9 @@ ev_annotation_free_text_get_property (GObject    *object,
 	case PROP_FREE_TEXT_FONT_SIZE:
 		g_value_set_double (value, annot->font_size);
 		break;
+        case PROP_FREE_TEXT_FONT_COLOR:
+                g_value_set_boxed (value, &annot->font_color);
+                break;
 	case PROP_FREE_TEXT_QUADDING:
 		g_value_set_enum (value, annot->quadding);
 		break;
@@ -1236,6 +1327,15 @@ ev_annotation_free_text_class_init (EvAnnotationFreeTextClass *klass)
 							       G_PARAM_CONSTRUCT |
 							       G_PARAM_READWRITE
                                                                ));
+
+        //TODO
+        //TODO use better name than font color since it is foreground color
+        g_object_class_install_property (g_object_class,
+                                         PROP_FREE_TEXT_FONT_COLOR,
+                                         g_param_spec_boxed ("rgba", NULL, NULL,
+                                                             GDK_TYPE_RGBA,
+                                                             G_PARAM_READWRITE |
+                                                             G_PARAM_STATIC_STRINGS));
 
 	g_object_class_install_property (g_object_class,
 					 PROP_FREE_TEXT_QUADDING,
@@ -1318,6 +1418,32 @@ ev_annotation_free_text_set_font_size (EvAnnotationFreeText   *annot,
         annot->font_size = font_size;
 
         g_object_notify (G_OBJECT (annot), "font_size");
+        return TRUE;
+}
+
+void
+ev_annotation_free_text_get_font_color (EvAnnotationFreeText *annot,
+                                        GdkRGBA              *rgba)
+{
+        g_return_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot));
+        g_return_if_fail (rgba != NULL);
+
+        *rgba = annot->font_color;
+}
+
+gboolean
+ev_annotation_free_text_set_font_color (EvAnnotationFreeText  *annot,
+                                        const GdkRGBA         *rgba)
+{
+        g_return_val_if_fail (EV_IS_ANNOTATION_FREE_TEXT (annot), FALSE);
+        g_return_val_if_fail (rgba != NULL, FALSE);
+
+        if (gdk_rgba_equal (rgba, &annot->font_color))
+                return FALSE;
+
+        annot->font_color = *rgba;
+        g_object_notify (G_OBJECT (annot), "font-color");
+
         return TRUE;
 }
 
@@ -1529,4 +1655,34 @@ void
 ev_annotation_callout_line_free (EvAnnotationCalloutLine *callout)
 {
         g_free (callout);
+}
+
+/* EvAnnotationBorder */
+G_DEFINE_BOXED_TYPE (EvAnnotationBorder, ev_annotation_border,
+                     ev_annotation_border_copy,
+                     ev_annotation_border_free)
+
+EvAnnotationBorder *
+ev_annotation_border_new (void)
+{
+        return g_new0 (EvAnnotationBorder, 1);
+}
+
+EvAnnotationBorder *
+ev_annotation_border_copy (EvAnnotationBorder *border)
+{
+  EvAnnotationBorder *new_border;
+
+  g_return_val_if_fail (border != NULL, NULL);
+
+  new_border = g_new0 (EvAnnotationBorder, 1);
+  *new_border = *border;
+
+  return new_border;
+}
+
+void
+ev_annotation_border_free (EvAnnotationBorder *border)
+{
+        g_free (border);
 }

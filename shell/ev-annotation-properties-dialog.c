@@ -41,6 +41,7 @@ struct _EvAnnotationPropertiesDialog {
 	GtkWidget       *color;
 	GtkWidget       *opacity;
 	GtkWidget       *popup_state;
+	GtkWidget       *border;
 
 	/* Text Annotations */
 	GtkWidget       *icon;
@@ -156,7 +157,19 @@ ev_annotation_properties_dialog_constructed (GObject *object)
 		gtk_grid_attach (GTK_GRID (grid), dialog->quadding, 1, 7, 1, 1);
                 gtk_widget_set_hexpand (dialog->quadding, TRUE);
                 gtk_widget_show (dialog->quadding);
+
+                /* Border Width */
+	        label = gtk_label_new (_("Border Width:"));
+	        gtk_misc_set_alignment (GTK_MISC (label), 0., 0.5);
+	        gtk_grid_attach (GTK_GRID (grid), label, 0, 8, 1, 1);
+	        gtk_widget_show (label);
+
+	        dialog->border = gtk_spin_button_new_with_range (0, 100, 1);
+	        gtk_grid_attach (GTK_GRID (grid), dialog->border, 1, 8, 1, 1);
+	        gtk_widget_set_hexpand (dialog->border, TRUE);
+	        gtk_widget_show (dialog->border);
 		break;
+
 	default:
 		break;
 	}
@@ -296,6 +309,7 @@ ev_annotation_properties_dialog_new_with_annotation (EvAnnotation *annot)
 	gdouble                       opacity;
 	gboolean                      is_open;
 	GdkRGBA                       rgba;
+	EvAnnotationBorder            annot_border;
 
 	dialog = (EvAnnotationPropertiesDialog *)ev_annotation_properties_dialog_new (ev_annotation_get_annotation_type (annot));
 	dialog->annot = g_object_ref (annot);
@@ -313,6 +327,9 @@ ev_annotation_properties_dialog_new_with_annotation (EvAnnotation *annot)
 	is_open = ev_annotation_markup_get_popup_is_open (EV_ANNOTATION_MARKUP (annot));
 	gtk_combo_box_set_active (GTK_COMBO_BOX (dialog->popup_state),
 				  is_open ? 0 : 1);
+
+	ev_annotation_get_border (annot, &annot_border);
+	gtk_spin_button_set_value (GTK_SPIN_BUTTON (dialog->border), (gdouble) annot_border.width);
 
 	if (EV_IS_ANNOTATION_TEXT (annot)) {
 		EvAnnotationText *annot_text = EV_ANNOTATION_TEXT (annot);
@@ -332,6 +349,8 @@ ev_annotation_properties_dialog_new_with_annotation (EvAnnotation *annot)
                 font = pango_font_description_to_string (pango_font);
 
                 gtk_font_button_set_font_name (GTK_FONT_BUTTON (dialog->font), font);
+	        ev_annotation_free_text_get_font_color (ftext, &rgba);
+	        gtk_color_chooser_set_rgba (GTK_COLOR_CHOOSER (dialog->font_color), &rgba);
                 gtk_combo_box_set_active (GTK_COMBO_BOX (dialog->quadding),
                                           ev_annotation_free_text_get_quadding (ftext));
                 g_free (font);
@@ -377,8 +396,25 @@ ev_annotation_properties_dialog_get_font (EvAnnotationPropertiesDialog *dialog)
         return gtk_font_button_get_font_name (GTK_FONT_BUTTON (dialog->font));
 }
 
+void
+ev_annotation_properties_dialog_get_font_color (EvAnnotationPropertiesDialog *dialog,
+					        GdkRGBA                      *rgba)
+{
+	gtk_color_chooser_get_rgba (GTK_COLOR_CHOOSER (dialog->font_color), rgba);
+}
+
 EvAnnotationFreeTextQuadding
 ev_annotation_properties_dialog_get_quadding (EvAnnotationPropertiesDialog *dialog)
 {
         return gtk_combo_box_get_active (GTK_COMBO_BOX (dialog->quadding));
+}
+
+void
+ev_annotation_properties_dialog_get_border (EvAnnotationPropertiesDialog *dialog,
+                                            EvAnnotationBorder           *border)
+{
+        g_return_if_fail (border != NULL);
+
+        border->width = gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (dialog->border));
+        border->style = 0;      //FIXME: implement a dialog which gives all the properties together.
 }

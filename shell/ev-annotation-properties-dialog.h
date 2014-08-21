@@ -51,6 +51,8 @@ EvAnnotationTextIcon ev_annotation_properties_dialog_get_text_icon       (EvAnno
 const gchar         *ev_annotation_properties_dialog_get_font            (EvAnnotationPropertiesDialog *dialog);
 EvAnnotationFreeTextQuadding 
                      ev_annotation_properties_dialog_get_quadding        (EvAnnotationPropertiesDialog *dialog);
+void                 ev_annotation_properties_dialog_get_border          (EvAnnotationPropertiesDialog *dialog,
+                                                                          EvAnnotationBorder           *border);
 
 G_END_DECLS
 
