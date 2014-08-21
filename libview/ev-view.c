@@ -4558,6 +4558,7 @@ draw_annotation_rectangle (EvView  *view,
         draw_rect.x -= (view->scroll_x);
         draw_rect.y -= (view->scroll_y);
         cairo_save (cr);
+        cairo_set_line_width (cr, 2.0);
         cairo_rectangle (cr, draw_rect.x,  draw_rect.y,
                          draw_rect.width, draw_rect.height);
         cairo_stroke_preserve (cr);

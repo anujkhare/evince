@@ -1325,8 +1325,6 @@ ev_annotation_free_text_class_init (EvAnnotationFreeTextClass *klass)
 							       G_PARAM_READWRITE
                                                                ));
 
-        //TODO
-        //TODO use better name than font color since it is foreground color
         g_object_class_install_property (g_object_class,
                                          PROP_FREE_TEXT_FONT_COLOR,
                                          g_param_spec_boxed ("rgba", NULL, NULL,
@@ -1439,7 +1437,6 @@ ev_annotation_free_text_set_font_color (EvAnnotationFreeText  *annot,
                 return FALSE;
 
         annot->font_color = *rgba;
-        printf ("set font color %f %f %f\n", rgba->red, rgba->blue, rgba->green);
         g_object_notify (G_OBJECT (annot), "font-color");
 
         return TRUE;
